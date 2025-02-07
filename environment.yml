@@ -1,0 +1,33 @@
+name: NeuroModPlasticity
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - astropy
+  - matplotlib
+  - numpy
+  - pandas
+  - python=3.11
+  - scikit-learn
+  - scipy
+  - seaborn
+  - ipython 
+  - ipywidgets
+  - jupyterlab
+  - setuptools
+  - napari
+  - cloudpickle
+  - pip
+  - dask
+  - h5py
+  - pytables
+  - yapf
+  - scikit-image
+  - tifffile
+  - pingouin
+  - ipykernel 
+  - nbconvert
+  - pip:
+    - -e /home/mplitt/repos/SessionTools
+    - -e .
+prefix: /home/mplitt/mambaforge/envs/NeuroModPlasticity
