@@ -8,7 +8,7 @@ import SessionTools.two_photon as st2p
 
 class GetTS():
     
-    def __init__(self, pp):
+    def __init__(self, pp, **kwargs):
         
         self.pp = pp
         self.dff = None
@@ -20,8 +20,9 @@ class GetTS():
         self.dff_h_aligned = None
         self.time = None
         self.n_rois = None
+
         
-        self.get_ts()
+        self.get_ts(**kwargs)
         self.heading_aligned()
         
         
