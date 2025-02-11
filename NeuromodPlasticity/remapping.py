@@ -43,19 +43,47 @@ def get_opto_resp(pp):
     return opto_resp
 
 
-def plot_min_dist(df, h_ax, x=np.arange(3), color='black'):
-    for _, row in df.iterrows():
-        b = row['baseline mean offset']
-        p0 = row['post_0deg mean offset']
-       
+def plot_min_dist(df, h_ax, x=np.arange(3), color='black', zero=False):
+    if not 'post_novis1 mean offset' in df.columns:
+    
+        for _, row in df.iterrows():
+            b = row['baseline mean offset']
+            
+            if zero:
+                _p0 = row['post_0deg mean offset']
+                p0 = np.array([_p0, _p0+2*np.pi, _p0-2*np.pi])
+                p0 = p0[np.argmin(np.abs(b-p0))]
+            else:
+                p0 = row['post_0deg mean offset']
         
-        _p180 = row['post_180deg mean offset']
-        p180 = np.array([_p180, _p180+2*np.pi, _p180-2*np.pi])
-        p180 = p180[np.argmin(np.abs(b-p180))]
+            
+            _p180 = row['post_180deg mean offset']
+            p180 = np.array([_p180, _p180+2*np.pi, _p180-2*np.pi])
+            p180 = p180[np.argmin(np.abs(b-p180))]
+            
+            h_ax.scatter(x, [b,p0,p180], color=color)
+            # h_ax.scatter(x, [b,p0,p180], color=plt.cm.hsv((b+np.pi)/(2*np.pi)), alpha=1)
+            h_ax.plot(x, [b,p0,p180], color=color, alpha=.2)
+            
+    else:
+        for _, row in df.iterrows():
+            b = row['baseline mean offset']
+            
+            if zero:
+                _p0 = row['post_novis1 mean offset']
+                p0 = np.array([_p0, _p0+2*np.pi, _p0-2*np.pi])
+                p0 = p0[np.argmin(np.abs(b-p0))]
+            else:
+                p0 = row['post_novis1 mean offset']
         
-        h_ax.scatter(x, [b,p0,p180], color=color)
-        # h_ax.scatter(x, [b,p0,p180], color=plt.cm.hsv((b+np.pi)/(2*np.pi)), alpha=1)
-        h_ax.plot(x, [b,p0,p180], color=color, alpha=.2)
+            
+            _p180 = row['post_novis2 mean offset']
+            p180 = np.array([_p180, _p180+2*np.pi, _p180-2*np.pi])
+            p180 = p180[np.argmin(np.abs(b-p180))]
+            
+            h_ax.scatter(x, [b,p0,p180], color=color)
+            # h_ax.scatter(x, [b,p0,p180], color=plt.cm.hsv((b+np.pi)/(2*np.pi)), alpha=1)
+            h_ax.plot(x, [b,p0,p180], color=color, alpha=.2)
 
 def plot_sess_heatmaps(ts_dict, vmin=-.5, vmax=.5, plot_times = np.arange(0, 180, 60)):
     fig, ax = plt.subplots(3, 2, figsize=[15,6], sharey=True, sharex=True)
