@@ -13,6 +13,7 @@ class GetTS():
         self.pp = pp
         self.dff = None
         self.heading = None
+        self.heading_sm = None
         self.offset = None
         self.phi = None
         self.rho = None
@@ -20,6 +21,7 @@ class GetTS():
         self.dff_h_aligned = None
         self.time = None
         self.n_rois = None
+        self.dt = None
 
         
         self.get_ts(**kwargs)
@@ -27,22 +29,27 @@ class GetTS():
         
         
     def get_ts(self, channels=-1, exp_detrend=True, zscore=True, background_ts='background',
-               circ_sigma=.5, t_sigma=1, neural_shift=-.2):
+               circ_sigma=.5, t_sigma=.1, h_sigma=.1, neural_shift=-.2):
         
         
-        self.heading = np.angle(np.exp(1j*(-1*self.pp.voltage_recording_aligned[' Heading'].to_numpy()-np.pi)))
+        
         
         self.time = self.pp.voltage_recording_aligned['Time(ms)']/1000
         self.time = self.time-self.time[0]
         
         
-        dt = np.diff(self.time).mean()
-        neural_shift_inds = int(neural_shift/dt)
+        self.dt = np.diff(self.time).mean()
+        neural_shift_inds = int(neural_shift/self.dt)
+        
+        self.heading = np.angle(np.exp(1j*(-1*self.pp.voltage_recording_aligned[' Heading'].to_numpy()-np.pi)))
+        x_h, y_h = st2p.utilities.pol2cart(np.ones_like(self.heading), self.heading)
+        x_h, y_h = sp.ndimage.gaussian_filter1d(x_h, h_sigma/self.dt), sp.ndimage.gaussian_filter1d(y_h, h_sigma/self.dt)
+        _, self.heading_sm = st2p.utilities.cart2pol(x_h, y_h)
         
         self.dff = self.pp.calculate_zscored_F('rois', exp_detrend=exp_detrend, zscore=zscore, 
                                                background_ts=background_ts)[channels,:,:]
         
-        self.dff = sp.ndimage.gaussian_filter1d(sp.ndimage.gaussian_filter1d(self.dff, t_sigma, axis=-1),
+        self.dff = sp.ndimage.gaussian_filter1d(sp.ndimage.gaussian_filter1d(self.dff, t_sigma/self.dt, axis=-1),
                                                 circ_sigma,axis=1, mode='wrap')
         
         self.dff = np.roll(self.dff, neural_shift_inds, axis=-1)
