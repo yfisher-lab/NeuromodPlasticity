@@ -24,6 +24,7 @@ def get_opto_resp(pp):
     for ind in opto_inds:
         pp.timeseries['rois'][:,:,ind:ind+n_frames] = np.nan
     pp.timeseries['rois'][:,:,:int(2/volume_dt)]=np.nan
+
     dff = pp.calculate_zscored_F('rois', exp_detrend=False, zscore=True, background_ts='background')[-1,:,:]
     
     
@@ -163,7 +164,8 @@ def plot_sess_histograms(ts_dict, bins = np.linspace(-np.pi, np.pi, num=17)):
     fig_hist.tight_layout()    
     
     ax_polar.set_xticks([0, np.pi/2, np.pi, 3*np.pi/2], ['0', r'$\pi$/2', r'$\pi$', r'3$\pi$/2'])
-    ax_polar.set_yticks([0,.2, .4],['','', ''])
+    ax_polar.set_yticks([0,.2, .4, .6, .8])
+    ax_polar.set_ylim([0,.8])
     ax_polar.set_title(ts_dict['fly'])
     ax_polar.legend()
     fig_polar.tight_layout()
