@@ -23,12 +23,15 @@ class GetTS():
         self.n_rois = None
         self.dt = None
         self.dh = None
+        self.fwhm = None
 
         self.outer_ring = None
 
         
         self.get_ts(**kwargs)
         self.heading_aligned()
+        self.calc_fwhm()
+
         
         
     def get_ts(self, channels=-1, exp_detrend=True, zscore=True, background_ts='background',
@@ -53,18 +56,28 @@ class GetTS():
                                                background_ts=background_ts)[channels,:,:]
         
         self.dff = sp.ndimage.gaussian_filter1d(sp.ndimage.gaussian_filter1d(self.dff, t_sigma/self.dt, axis=-1),
-                                                circ_sigma,axis=1, mode='wrap')
+                                                circ_sigma,axis=-2, mode='wrap')
         
         self.dff = np.roll(self.dff, neural_shift_inds, axis=-1)
         
-        
-        
-        self.n_rois = self.dff.shape[0]  
-        x_f,y_f = st2p.utilities.pol2cart(self.dff ,np.linspace(-np.pi,np.pi,num=self.n_rois)[:,np.newaxis])
-        self.rho, self.phi = st2p.utilities.cart2pol(x_f.mean(axis=0), y_f.mean(axis=0))
-        
-        _,self.offset = st2p.utilities.cart2pol(*st2p.utilities.pol2cart(np.ones(self.heading.shape),self.phi-self.heading))
-        
+        self.n_rois = self.dff.shape[-2]  
+        if self.dff.ndim == 2:
+            x_f,y_f = st2p.utilities.pol2cart(self.dff ,np.linspace(-np.pi,np.pi,num=self.n_rois)[:,np.newaxis])
+            self.rho, self.phi = st2p.utilities.cart2pol(x_f.mean(axis=0), y_f.mean(axis=0))
+            
+            _,self.offset = st2p.utilities.cart2pol(*st2p.utilities.pol2cart(np.ones(self.heading.shape),self.phi-self.heading))
+
+        else: # if there are multiple channels
+            self.rho = np.zeros((self.dff.shape[0], self.dff.shape[-1]))
+            self.phi = np.zeros((self.dff.shape[0], self.dff.shape[-1]))
+            self.offset = np.zeros((self.dff.shape[0], self.dff.shape[-1]))
+
+            for chan in range(self.dff.shape[0]):
+                x_f,y_f = st2p.utilities.pol2cart(self.dff[chan, :, :] ,np.linspace(-np.pi,np.pi,num=self.n_rois)[:,np.newaxis])
+                self.rho[chan, :], self.phi[chan,:] = st2p.utilities.cart2pol(x_f.mean(axis=0), y_f.mean(axis=0))
+            
+                _,self.offset[chan,:] = st2p.utilities.cart2pol(*st2p.utilities.pol2cart(np.ones(self.heading.shape),self.phi[chan,:]-self.heading))
+            
 
         self.outer_ring = np.squeeze(self.pp.calculate_zscored_F('outer_ring', exp_detrend=exp_detrend, zscore=zscore,
                                                      background_ts=background_ts))
@@ -79,11 +92,34 @@ class GetTS():
         heading_dig = np.digitize(self.heading, self.heading_bins)-1
 
         self.dff_h_aligned = np.zeros_like(self.dff)
-        for ind in range(self.heading.shape[0]):
-            self.dff_h_aligned[:,ind] = np.roll(self.dff[:,ind], -heading_dig[ind]+8)
+        if self.dff.ndim == 2:
+            for ind in range(self.heading.shape[0]):
+                self.dff_h_aligned[:,ind] = np.roll(self.dff[:,ind], -heading_dig[ind]+8)
+        else:
+            for chan in range(self.dff.shape[0]):
+                for ind in range(self.heading.shape[0]):
+                    self.dff_h_aligned[chan,:,ind] = np.roll(self.dff[chan,:,ind], -heading_dig[ind]+8)
     
     @property
     def offset_c(self):
         return np.exp(1j*self.offset)
+    
+    def calc_fwhm(self):
+        
+        def _fwhm(dff):
+            max_inds = np.argmax(dff, axis=0)
+            dff_aligned = np.zeros_like(dff)
+            for i in range(dff.shape[1]):
+                dff_aligned[:,i] = np.roll(dff[:,i], -max_inds[i])
+            mu = dff_aligned.mean(axis=1)
+            mu = (mu-np.amin(mu))/(np.amax(mu)-np.amin(mu))
+            return ((mu>=.5).sum()*2*np.pi/self.n_rois)
+
+        if self.dff.ndim > 2: # if there are multiple channels
+            self.fwhm = [_fwhm(self.dff[i,:,:]) for i in range(self.dff.shape[0])]
+        else:
+            self.fwhm = _fwhm(self.dff)
+            
+
     
     
