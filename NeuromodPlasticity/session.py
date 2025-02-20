@@ -22,6 +22,7 @@ class GetTS():
         self.time = None
         self.n_rois = None
         self.dt = None
+        self.dh = None
 
         self.outer_ring = None
 
@@ -68,6 +69,9 @@ class GetTS():
         self.outer_ring = np.squeeze(self.pp.calculate_zscored_F('outer_ring', exp_detrend=exp_detrend, zscore=zscore,
                                                      background_ts=background_ts))
         self.outer_ring = sp.ndimage.gaussian_filter1d(self.outer_ring, t_sigma/self.dt)
+
+        dh = np.diff(np.unwrap(self.heading_sm))/self.dt
+        self.dh = np.concatenate([[0], dh])
         
         
     def heading_aligned(self):

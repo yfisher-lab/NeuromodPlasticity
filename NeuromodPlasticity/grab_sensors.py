@@ -171,10 +171,12 @@ def rho_stats(sess_cls, dh_bins):
         
 def reformat_rho_stats_for_reg(grouped_stats, dh_bins):
     reg_df = {'fly_id': [],
-           'dark': [],
-           'rho': [],
-           'F': [],
-           'dh': [],
+              'cl': [],
+              'rho': [],
+              'F': [],
+              'log_F': [],
+              'log_rho': [],
+              'dh': [],
            }
     for _, row in grouped_stats.iterrows():
         # print(row)
@@ -183,10 +185,12 @@ def reformat_rho_stats_for_reg(grouped_stats, dh_bins):
             F = row['F_dig'][i]
             if ~np.isnan(rho):
                 reg_df['fly_id'].append(row['fly_id'])
-                reg_df['dark'].append(row['dark'])
+                reg_df['cl'].append(row['cl'])
                 reg_df['rho'].append(rho)
+                reg_df['log_rho'].append(np.log(rho))
                 reg_df['dh'].append(dh)
-                reg_df['F'].append()
+                reg_df['F'].append(F)
+                reg_df['log_F'].append(np.log(F))
 
     reg_df = pd.DataFrame.from_dict(reg_df)
 
@@ -226,9 +230,9 @@ def plot_sess_heatmaps(ts_dict, vmin=-.5, vmax=.5, plot_times = np.arange(0, 360
         ax_heading.set_ylim([2*np.pi, 0])
         fig.colorbar(h, ax=ax_heading)
 
-        dh = np.diff(np.unwrap(ts_dict[key].heading_sm))/ts_dict[key].dt
-        dh = np.abs(np.concatenate([[0],dh]))
-        ax_dh.plot(x, dh, color='black')
+        # dh = np.diff(np.unwrap(ts_dict[key].heading_sm))/ts_dict[key].dt
+        # dh = np.abs(np.concatenate([[0],dh]))
+        ax_dh.plot(x, np.abs(ts_dict[key].dh), color='black')
         
         fig.colorbar(h, ax=ax_dh)
         
@@ -262,18 +266,22 @@ def plot_sess_heatmaps(ts_dict, vmin=-.5, vmax=.5, plot_times = np.arange(0, 360
     return fig
 
 def plot_sess_histograms(ts_dict, bins = np.linspace(-np.pi, np.pi, num=17), 
-                         cl_color='black', dark_color='purple'):
+                         cmap='Greys'):
     
     fig_hist, ax_hist = plt.subplots()
     fig_polar, ax_polar = plt.subplots(subplot_kw={'projection':'polar'})
     centers = (bins[1:]+bins[:-1])/2
-    def plot_hist(key, color, hatch=None):
+
+
+    def plot_hist(key, cmap, hatch=None):
         offset = ts_dict[key].offset
         hist, _ = np.histogram(offset, bins=bins)
         hist = hist/hist.sum()
         
         offset_c_mu = ts_dict[key].offset_c.mean()
         
+        _cmap = plt.get_cmap(cmap)
+        color = _cmap(.8)
         if hatch is not None:
             ax_hist.fill_between(centers, hist, color='none', alpha=.4, hatch=hatch, edgecolor=color)
             ax_polar.plot(np.angle(offset_c_mu)*np.ones([2,]), [0, np.abs(offset_c_mu)], color=color, linewidth=2, label=key,
@@ -282,15 +290,18 @@ def plot_sess_histograms(ts_dict, bins = np.linspace(-np.pi, np.pi, num=17),
         else:
             ax_hist.fill_between(centers, hist, color=color, alpha=.4)
             ax_polar.plot(np.angle(offset_c_mu)*np.ones([2,]), [0, np.abs(offset_c_mu)], color=color, linewidth=2, label=key)
+        ax_hist.set_title(key)        
+        ax_polar.set_title(key)
         
         
         
+    for key in ts_dict.keys():
+        if key == 'fly':
+            fig_hist.suptitle(ts_dict[key])
+            fig_polar.suptitle(ts_dict[key])
+        else:
+            plot_hist(key, cmap)  
         
-            
-        
-        
-    plot_hist('closed_loop', cl_color)
-    plot_hist('dark', dark_color)
     
     
     ax_hist.spines['top'].set_visible(False)
@@ -300,13 +311,13 @@ def plot_sess_histograms(ts_dict, bins = np.linspace(-np.pi, np.pi, num=17),
     ax_hist.set_yticks([0,.05, .1,.15, .2, .25])
     ax_hist.set_ylim([0,.25])
     ax_hist.set_ylabel('Proportion')
-    ax_hist.set_title(ts_dict['fly'])        
+    
     fig_hist.tight_layout()    
     
     ax_polar.set_xticks([0, np.pi/2, np.pi, 3*np.pi/2], ['0', r'$\pi$/2', r'$\pi$', r'3$\pi$/2'])
-    ax_polar.set_yticks([0,.2, .4, .6])
+    ax_polar.set_yticks([0,.2, .4, .6, .8])
     ax_polar.set_title(ts_dict['fly'])
-    ax_polar.legend()
+    # ax_polar.legend()
     fig_polar.tight_layout()
     
     return (fig_hist, ax_hist), (fig_polar, ax_polar)
