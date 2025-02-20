@@ -23,6 +23,8 @@ class GetTS():
         self.n_rois = None
         self.dt = None
 
+        self.outer_ring = None
+
         
         self.get_ts(**kwargs)
         self.heading_aligned()
@@ -62,6 +64,10 @@ class GetTS():
         
         _,self.offset = st2p.utilities.cart2pol(*st2p.utilities.pol2cart(np.ones(self.heading.shape),self.phi-self.heading))
         
+
+        self.outer_ring = np.squeeze(self.pp.calculate_zscored_F('outer_ring', exp_detrend=exp_detrend, zscore=zscore,
+                                                     background_ts=background_ts))
+        self.outer_ring = sp.ndimage.gaussian_filter1d(self.outer_ring, t_sigma/self.dt)
         
         
     def heading_aligned(self):
