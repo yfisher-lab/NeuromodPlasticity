@@ -196,7 +196,7 @@ def reformat_rho_stats_for_reg(grouped_stats, dh_bins):
 
 def plot_sess_heatmaps(ts_dict, vmin=-.5, vmax=.5, plot_times = np.arange(0, 360, 60),
                        cmap='Greys'):
-    fig, ax = plt.figure(figsize=[7.5,5])
+    fig = plt.figure(figsize=[7.5,5])
     gs = gridspec.GridSpec(3,1, height_ratios=[3,1,1])
     
     ax_heatmap = fig.add_subplot(gs[0])
@@ -220,9 +220,10 @@ def plot_sess_heatmaps(ts_dict, vmin=-.5, vmax=.5, plot_times = np.arange(0, 360
         
         h = ax_heatmap.imshow(dff, aspect='auto', cmap=cmap, vmin=vmin, vmax=vmax)
         fig.colorbar(h, ax=ax_heatmap)
-        ax_heatmap.scatter(x, heading_, color='orange', s=5, alpha=.5)
+        # ax_heatmap.scatter(x, heading_, color='orange', s=5, alpha=.5)
         
-        ax_heading.plot(x, ts_dict[key].heading, color='orange')
+        ax_heading.scatter(x, ts_dict[key].heading+np.pi, color='orange', s=5)
+        ax_heading.set_ylim([2*np.pi, 0])
         fig.colorbar(h, ax=ax_heading)
 
         dh = np.diff(np.unwrap(ts_dict[key].heading_sm))/ts_dict[key].dt
@@ -232,13 +233,21 @@ def plot_sess_heatmaps(ts_dict, vmin=-.5, vmax=.5, plot_times = np.arange(0, 360
         fig.colorbar(h, ax=ax_dh)
         
 
-        ax_heading.set_ylabel('ROIs')
-        ax_heading.set_yticks([-0.5,7.5,15.5], labels=[r'0', r'$\pi$', r'$2\pi$'])
+        ax_heatmap.set_ylabel('ROIs')
+        ax_heatmap.set_yticks([-0.5,7.5,15.5], labels=[r'0', r'$\pi$', r'$2\pi$'])
         
-        ax_heading.set_xticks(get_time_ticks_inds(time, plot_times), labels=plot_times)
-        ax_heading.set_xlabel('Time (s)')
         
-        ax_heading.set_title(key)
+        ax_heatmap.set_xticks(get_time_ticks_inds(time, plot_times), labels=plot_times)
+        ax_heatmap.set_xlabel('Time (s)')
+
+        ax_heading.set_yticks([0, np.pi, 2*np.pi], labels=[r'0', r'$\pi$', r'$2\pi$'])
+        ax_heading.set_ylabel('Heading')
+
+        ax_dh.set_ylim([0, 10])
+        ax_dh.set_yticks([0, 10])
+        ax_dh.set_ylabel('rot speed')
+        
+        ax_heatmap.set_title(key)
         
         
         
@@ -250,7 +259,7 @@ def plot_sess_heatmaps(ts_dict, vmin=-.5, vmax=.5, plot_times = np.arange(0, 360
     
     fig.tight_layout()
     
-    return fig, ax
+    return fig
 
 def plot_sess_histograms(ts_dict, bins = np.linspace(-np.pi, np.pi, num=17), 
                          cl_color='black', dark_color='purple'):
