@@ -124,11 +124,11 @@ def plot_sess_heatmaps(ts, fly_id, sess_name, vmin=-.5, vmax=.5, plot_times = np
     heading_ = (ts.heading+np.pi)/(2*np.pi)*15
 
     h = ax[0, 0].imshow(ts.dff[0, :, :], aspect='auto', cmap=ch1_heatmap, vmin=vmin, vmax=vmax)
-    ax[0, 0].scatter(x, heading_, s=5, c='orange')
+    ax[0, 0].scatter(x, heading_, s=5, color='orange')
     fig.colorbar(h, ax=ax[0,0])
 
     h = ax[0, 1].imshow(ts.dff_h_aligned[0, :, :], aspect='auto', cmap=ch1_heatmap, vmin=vmin, vmax=vmax)
-    ax[0, 1].scatter(x, 7.5*np.ones_like(heading_), s=5, c='orange')
+    ax[0, 1].scatter(x, 7.5*np.ones_like(heading_), s=5, color='orange')
     fig.colorbar(h, ax=ax[0,1])
 
     h = ax[1,0].imshow(ts.dff[1, :, :], aspect='auto', cmap=ch2_heatmap, vmin=vmin, vmax=vmax)
@@ -136,7 +136,7 @@ def plot_sess_heatmaps(ts, fly_id, sess_name, vmin=-.5, vmax=.5, plot_times = np
     fig.colorbar(h, ax=ax[1,0])
 
     h = ax[1, 1].imshow(ts.dff_h_aligned[1, :, :], aspect='auto', cmap=ch2_heatmap, vmin=vmin, vmax=vmax)
-    ax[1, 1].scatter(x, 7.5*np.ones_like(heading_), s=5, c='orange')
+    ax[1, 1].scatter(x, 7.5*np.ones_like(heading_), s=5, color='orange')
     fig.colorbar(h, ax=ax[1,1])
 
     ax[0,0].set_title('Ch 1')
@@ -144,9 +144,9 @@ def plot_sess_heatmaps(ts, fly_id, sess_name, vmin=-.5, vmax=.5, plot_times = np
 
     phi_ = (ts.phi+np.pi)/2/np.pi*15
     cmap = plt.get_cmap(ch1_heatmap)
-    ax[2,0].scatter(x, phi_[0,:], c=cmap(.8), s=5)
+    ax[2,0].scatter(x, phi_[0,:], color=cmap(.8), s=5)
     cmap = plt.get_cmap(ch2_heatmap)
-    ax[2,0].scatter(x, phi_[1,:], c=cmap(.8), s=5)
+    ax[2,0].scatter(x, phi_[1,:], color=cmap(.8), s=5)
     fig.colorbar(h, ax=ax[2,0])
 
     phi_diff = np.angle(np.exp(1j*np.diff(ts.phi, axis=0)))

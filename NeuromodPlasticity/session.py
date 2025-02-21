@@ -24,6 +24,7 @@ class GetTS():
         self.dt = None
         self.dh = None
         self.fwhm = None
+        self.pv_c = None
 
         self.outer_ring = None
 
@@ -63,6 +64,7 @@ class GetTS():
         self.n_rois = self.dff.shape[-2]  
         if self.dff.ndim == 2:
             x_f,y_f = st2p.utilities.pol2cart(self.dff ,np.linspace(-np.pi,np.pi,num=self.n_rois)[:,np.newaxis])
+            self.pv_c = x_f.mean(axis=0) + 1j*y_f.mean(axis=0)
             self.rho, self.phi = st2p.utilities.cart2pol(x_f.mean(axis=0), y_f.mean(axis=0))
             
             _,self.offset = st2p.utilities.cart2pol(*st2p.utilities.pol2cart(np.ones(self.heading.shape),self.phi-self.heading))
@@ -71,9 +73,11 @@ class GetTS():
             self.rho = np.zeros((self.dff.shape[0], self.dff.shape[-1]))
             self.phi = np.zeros((self.dff.shape[0], self.dff.shape[-1]))
             self.offset = np.zeros((self.dff.shape[0], self.dff.shape[-1]))
+            self.pv_c = np.zeros((self.dff.shape[0], self.dff.shape[-1]), dtype=complex)
 
             for chan in range(self.dff.shape[0]):
                 x_f,y_f = st2p.utilities.pol2cart(self.dff[chan, :, :] ,np.linspace(-np.pi,np.pi,num=self.n_rois)[:,np.newaxis])
+                self.pv_c[chan,:] = x_f.mean(axis=0) + 1j*y_f.mean(axis=0)
                 self.rho[chan, :], self.phi[chan,:] = st2p.utilities.cart2pol(x_f.mean(axis=0), y_f.mean(axis=0))
             
                 _,self.offset[chan,:] = st2p.utilities.cart2pol(*st2p.utilities.pol2cart(np.ones(self.heading.shape),self.phi[chan,:]-self.heading))
