@@ -21,6 +21,7 @@ def offset_stats(sess_df, load_row):
                 'offset_var_ch2': [],
                 'offset_diff': [],
                 'abs_offset_diff': [],
+                'pva_diff': [],
                 'fwhm_ch1': [],
                 'fwhm_ch2': []}
     
@@ -43,6 +44,9 @@ def offset_stats(sess_df, load_row):
         stats_df['offset_diff'].append(sp.stats.circmean(offset_diff))
         stats_df['abs_offset_diff'].append(sp.stats.circmean(np.abs(offset_diff)))
 
+        pva_diff = np.abs(np.angle(np.exp(1j*np.diff(ts.phi,axis=0)))).mean()
+        stats_df['pva_diff'].append(pva_diff)
+
         stats_df['fwhm_ch1'].append(ts.fwhm[0])
         stats_df['fwhm_ch2'].append(ts.fwhm[1])
 
@@ -57,6 +61,7 @@ def offset_stats_unique(stats_df):
                 'offset_var_ch2': [],
                 'offset_diff': [],
                 'abs_offset_diff': [],
+                'pva_diff': [],
                 'fwhm_ch1': [],
                 'fwhm_ch2': []}
     
@@ -76,8 +81,10 @@ def offset_stats_unique(stats_df):
             stats_df_unique['offset_var_ch1'].append(stats_df.loc[cl_mask, 'offset_var_ch1'].mean())
             stats_df_unique['offset_var_ch2'].append(stats_df.loc[cl_mask, 'offset_var_ch2'].mean())
 
-            stats_df_unique['offset_diff'].append(sp.stats.circmean(stats_df.loc[cl_mask, 'offset_diff']))
+            stats_df_unique['offset_diff'].append(np.angle(np.exp(1j*stats_df.loc[cl_mask, 'offset_diff']).mean()))
             stats_df_unique['abs_offset_diff'].append(stats_df.loc[cl_mask, 'abs_offset_diff'].mean())
+
+            stats_df_unique['pva_diff'].append(stats_df.loc[cl_mask, 'pva_diff'].mean())
 
             stats_df_unique['fwhm_ch1'].append(stats_df.loc[cl_mask, 'fwhm_ch1'].mean())
             stats_df_unique['fwhm_ch2'].append(stats_df.loc[cl_mask, 'fwhm_ch2'].mean())
@@ -93,7 +100,70 @@ def offset_stats_unique(stats_df):
             stats_df_unique['offset_diff'].append(sp.stats.circmean(stats_df.loc[dark_mask, 'offset_diff']))
             stats_df_unique['abs_offset_diff'].append(stats_df.loc[dark_mask, 'abs_offset_diff'].mean())
 
+            stats_df_unique['pva_diff'].append(stats_df.loc[dark_mask, 'pva_diff'].mean())
+
             stats_df_unique['fwhm_ch1'].append(stats_df.loc[dark_mask, 'fwhm_ch1'].mean())
             stats_df_unique['fwhm_ch2'].append(stats_df.loc[dark_mask, 'fwhm_ch2'].mean())
     return pd.DataFrame(stats_df_unique)
 
+
+
+def plot_sess_heatmaps(ts, fly_id, sess_name, vmin=-.5, vmax=.5, plot_times = np.arange(0,360,60),
+                       ch1_heatmap = 'Greys', ch2_heatmap = 'Greens'):
+
+    fig, ax = plt.subplots(3,2, figsize=[15,6], sharey=True, sharex=True)
+
+    def get_time_ticks_inds(time, plot_times):
+        inds = []
+        for t in plot_times:
+            inds.append(np.argmin(np.abs(time-t)))
+        return inds
+    
+    x = np.arange(ts.dff.shape[-1])
+
+    heading_ = (ts.heading+np.pi)/(2*np.pi)*15
+
+    h = ax[0, 0].imshow(ts.dff[0, :, :], aspect='auto', cmap=ch1_heatmap, vmin=vmin, vmax=vmax)
+    ax[0, 0].scatter(x, heading_, s=5, c='orange')
+    fig.colorbar(h, ax=ax[0,0])
+
+    h = ax[0, 1].imshow(ts.dff_h_aligned[0, :, :], aspect='auto', cmap=ch1_heatmap, vmin=vmin, vmax=vmax)
+    ax[0, 1].scatter(x, 7.5*np.ones_like(heading_), s=5, c='orange')
+    fig.colorbar(h, ax=ax[0,1])
+
+    h = ax[1,0].imshow(ts.dff[1, :, :], aspect='auto', cmap=ch2_heatmap, vmin=vmin, vmax=vmax)
+    ax[1,0].scatter(x, heading_, s=5, c='orange')
+    fig.colorbar(h, ax=ax[1,0])
+
+    h = ax[1, 1].imshow(ts.dff_h_aligned[1, :, :], aspect='auto', cmap=ch2_heatmap, vmin=vmin, vmax=vmax)
+    ax[1, 1].scatter(x, 7.5*np.ones_like(heading_), s=5, c='orange')
+    fig.colorbar(h, ax=ax[1,1])
+
+    ax[0,0].set_title('Ch 1')
+    ax[1,0].set_title('Ch 2')
+
+    phi_ = (ts.phi+np.pi)/2/np.pi*15
+    cmap = plt.get_cmap(ch1_heatmap)
+    ax[2,0].scatter(x, phi_[0,:], c=cmap(.8), s=5)
+    cmap = plt.get_cmap(ch2_heatmap)
+    ax[2,0].scatter(x, phi_[1,:], c=cmap(.8), s=5)
+    fig.colorbar(h, ax=ax[2,0])
+
+    phi_diff = np.angle(np.exp(1j*np.diff(ts.phi, axis=0)))
+    phi_diff = (phi_diff+np.pi)/2/np.pi*15
+    ax[2,1].scatter(x, phi_diff, c='blue', s=5)
+    fig.colorbar(h, ax=ax[2,1])
+
+    for a in ax.flatten():
+        a.set_ylabel('ROIs')
+        a.set_yticks([-0.5,7.5,15.5], labels=[r'0', r'$\pi$', r'$2\pi$'])
+        
+        a.set_xticks(get_time_ticks_inds(ts.time, plot_times), labels=plot_times)
+        a.set_xlabel('Time (s)')
+
+    
+    fig.suptitle(f'{fly_id} - {sess_name}')
+    fig.tight_layout()
+
+    return fig, ax
+    
