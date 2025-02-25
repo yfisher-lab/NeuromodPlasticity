@@ -130,7 +130,7 @@ def cross_corr_stats(sess_df, load_row, delays, times):
     r_df['r'].append(f(times))
     r_df['argmax'].append(np.argmax(f(times)))
     
-r_df = pd.DataFrame(r_df)
+    return pd.DataFrame(r_df)
 
 
 def plot_sess_heatmaps(ts, fly_id, sess_name, vmin=-.5, vmax=.5, plot_times = np.arange(0,360,60),
