@@ -106,6 +106,31 @@ def offset_stats_unique(stats_df):
             stats_df_unique['fwhm_ch2'].append(stats_df.loc[dark_mask, 'fwhm_ch2'].mean())
     return pd.DataFrame(stats_df_unique)
 
+def cross_corr_stats(sess_df, load_row):
+    r_df = {'fly': [],
+            'cl': [],
+            'r': [],
+            'argmax': []}
+    delays = np.arange(-50,51)
+    times = delays*.01
+    for _, row in sess_df.iterrows():
+        # cross correlation of pva values
+        ts = session.GetTS(load_row(row), channels=(0,1))
+        
+        r = np.zeros_like(delays, dtype=float)
+        for i, d in enumerate(delays):
+            
+            r[i] = np.abs(np.correlate(np.exp(1j*ts.phi[0,:]), np.exp(1j*np.roll(ts.phi[1,:],d)))/ts.phi.shape[-1])[0]
+            # r[i] = np.abs(np.correlate(ts.phi[0,:], np.roll(ts.phi[1,:],d)/ts.phi.shape[-1])[0])
+
+        r_df['fly'].append(row['fly_id'])
+        r_df['cl'].append(row['closed_loop'])
+        
+    f = interp1d(delays*ts.dt, r, kind='linear', bounds_error=False, fill_value='extrapolate')
+    r_df['r'].append(f(times))
+    r_df['argmax'].append(np.argmax(f(times)))
+    
+r_df = pd.DataFrame(r_df)
 
 
 def plot_sess_heatmaps(ts, fly_id, sess_name, vmin=-.5, vmax=.5, plot_times = np.arange(0,360,60),
