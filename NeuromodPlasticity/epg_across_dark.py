@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 
 
 
-def plot_sess_heatmaps(ts_dict, vmin=-.5, vmax=.5, plot_times = np.arange(0, 360, 60)):
+def plot_sess_heatmaps(ts_dict, vmin=-.5, vmax=.5, plot_times = np.arange(0, 360, 60), twindow = None):
     fig, ax = plt.subplots(3, 2, figsize=[15,6], sharey=True, sharex=True)
     
     
@@ -19,14 +19,23 @@ def plot_sess_heatmaps(ts_dict, vmin=-.5, vmax=.5, plot_times = np.arange(0, 360
     def plot_row(key, row, cmap):
         dff = ts_dict[key].dff
         time = ts_dict[key].time
+
+        if twindow is not None:
+            mask = (time>=twindow[0]) * (time<=twindow[1])
+        else:
+            mask = np.ones_like(time)>0
+        dff= dff[:,mask]
+        time = time[mask]
+
+
         x = np.arange(dff.shape[1])
-        heading_ = (ts_dict[key].heading+np.pi)/(2*np.pi)*15
+        heading_ = (ts_dict[key].heading[mask]+np.pi)/(2*np.pi)*15
         h = ax[row,0].imshow(dff, aspect='auto', cmap=cmap, vmin=vmin, vmax=vmax)
         fig.colorbar(h, ax=ax[row,0])
         
         ax[row,0].scatter(x, heading_, color='orange', s=5)
         
-        h = ax[row,1].imshow(ts_dict[key].dff_h_aligned, aspect='auto', cmap=cmap, vmin=vmin, vmax=vmax)
+        h = ax[row,1].imshow(ts_dict[key].dff_h_aligned[:,mask], aspect='auto', cmap=cmap, vmin=vmin, vmax=vmax)
         fig.colorbar(h, ax=ax[row,1])
         ax[row,1].scatter(x, 7.5*np.ones_like(heading_), color='orange', s=5)
         
