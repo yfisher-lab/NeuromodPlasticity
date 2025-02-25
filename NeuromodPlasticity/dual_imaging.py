@@ -179,6 +179,7 @@ def plot_sess_heatmaps(ts, fly_id, sess_name, vmin=-.5, vmax=.5, plot_times = np
     ax[2,1].scatter(x, phi_diff, c='blue', s=5)
     fig.colorbar(h, ax=ax[2,1])
 
+    plot_times = plot_times[plot_times<ts.time.iloc[-1]]
     for a in ax.flatten():
         a.set_ylabel('ROIs')
         a.set_yticks([-0.5,7.5,15.5], labels=[r'0', r'$\pi$', r'$2\pi$'])
