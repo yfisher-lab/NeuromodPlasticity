@@ -106,6 +106,16 @@ def offset_stats_unique(stats_df):
             stats_df_unique['fwhm_ch2'].append(stats_df.loc[dark_mask, 'fwhm_ch2'].mean())
     return pd.DataFrame(stats_df_unique)
 
+def pv_rot_stats():
+    pass
+def pv_rot_stats_unique():
+    pass
+def pvdiff_pvmag_stats():
+    pass
+def pvdiff_pvmag_stats_unique():
+    pass
+
+
 def cross_corr_stats(sess_df, load_row, delays, times):
     r_df = {'fly': [],
             'cl': [],
