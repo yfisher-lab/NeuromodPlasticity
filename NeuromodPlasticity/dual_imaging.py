@@ -106,7 +106,7 @@ def offset_stats_unique(stats_df):
             stats_df_unique['fwhm_ch2'].append(stats_df.loc[dark_mask, 'fwhm_ch2'].mean())
     return pd.DataFrame(stats_df_unique)
 
-def cross_corr_stats(sess_df, load_row):
+def cross_corr_stats(sess_df, load_row, delays, times):
     r_df = {'fly': [],
             'cl': [],
             'r': [],
@@ -126,7 +126,7 @@ def cross_corr_stats(sess_df, load_row):
         r_df['fly'].append(row['fly_id'])
         r_df['cl'].append(row['closed_loop'])
         
-    f = interp1d(delays*ts.dt, r, kind='linear', bounds_error=False, fill_value='extrapolate')
+    f = sp.interpolate.interp1d(delays*ts.dt, r, kind='linear', bounds_error=False, fill_value='extrapolate')
     r_df['r'].append(f(times))
     r_df['argmax'].append(np.argmax(f(times)))
     
