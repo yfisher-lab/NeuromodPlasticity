@@ -104,15 +104,39 @@ def offset_stats_unique(stats_df):
 
             stats_df_unique['fwhm_ch1'].append(stats_df.loc[dark_mask, 'fwhm_ch1'].mean())
             stats_df_unique['fwhm_ch2'].append(stats_df.loc[dark_mask, 'fwhm_ch2'].mean())
-    return pd.DataFrame(stats_df_unique)
+    return pd.DataFrame.from_dict(stats_df_unique)
 
-def pv_rot_stats():
+def rho_stats(sess_df, load_row, dh_bins):
+    stats_df = {'fly_id': [],
+                'cl': [],
+                'rho1_dig': [],
+                'rho2_dig': [],
+                }
+    for _, row in sess_df.iterrows():
+        ts = session.GetTS(load_row(row), channels=[0,1])
+
+        stats_df['fly_id'].append(row['fly_id'])
+        stats_df['cl'].append(row['closed_loop'])
+
+        dh = np.diff(np.unwrap(ts.heading_sm))/ts.dt
+        dh = np.concatenate([[0],dh])
+        
+        dh_dig = np.digitize(np.abs(dh), dh_bins) - 1
+
+        rho1_dig = np.array([ts.rho[0, dh_dig == i].mean() for i in range(len(dh_bins))])
+        stats_df['rho1_dig'].append(rho1_dig)
+
+        rho2_dig = np.array([ts.rho[1, dh_dig == i].mean() for i in range(len(dh_bins))])
+        stats_df['rho2_dig'].append(rho2_dig)
+
+    return pd.DataFrame.from_dict(stats_df)
+
+def reformat_rho_stats():
     pass
-def pv_rot_stats_unique():
+
+def pvdiff_rho_stats():
     pass
-def pvdiff_pvmag_stats():
-    pass
-def pvdiff_pvmag_stats_unique():
+def reformat_pvdiff_rho_stats():
     pass
 
 
@@ -140,7 +164,7 @@ def cross_corr_stats(sess_df, load_row, delays, times):
     r_df['r'].append(f(times))
     r_df['argmax'].append(np.argmax(f(times)))
     
-    return pd.DataFrame(r_df)
+    return pd.DataFrame.from_dict(r_df)
 
 
 def plot_sess_heatmaps(ts, fly_id, sess_name, vmin=-.5, vmax=.5, plot_times = np.arange(0,360,60),

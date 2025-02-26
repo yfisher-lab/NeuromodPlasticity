@@ -42,7 +42,8 @@ def plot_sess_heatmaps(ts_dict, vmin=-.5, vmax=.5, plot_times = np.arange(0, 360
         ax[row,0].set_ylabel('ROIs')
         ax[row,0].set_yticks([-0.5,7.5,15.5], labels=[r'0', r'$\pi$', r'$2\pi$'])
         
-        ax[row,0].set_xticks(get_time_ticks_inds(time, plot_times), labels=plot_times)
+        _plot_times = plot_times[plot_times<ts_dict[key].time.iloc[-1]]
+        ax[row,0].set_xticks(get_time_ticks_inds(time, _plot_times), labels=plot_times)
         ax[row,0].set_xlabel('Time (s)')
         
         ax[row,0].set_title(key)
