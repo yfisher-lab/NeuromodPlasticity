@@ -134,8 +134,24 @@ def rho_stats(sess_df, load_row, dh_bins):
 def reformat_rho_stats():
     pass
 
-def pvdiff_rho_stats():
-    pass
+def pvdiff_rho_stats(sess_df, load_row, pv_bins):
+    stats_df = {'fly_id': [],
+                'cl': [],
+                'pva_diff': [],
+                }
+    
+    for _, row in sess_df.iterrows():
+        ts = session.GetTS(load_row(row), channels=[0,1])
+
+        stats_df['fly_id'].append(row['fly_id'])
+        stats_df['cl'].append(row['closed_loop'])
+
+        pva_diff = np.abs(np.angle(np.exp(1j*np.diff(ts.phi,axis=0)))).ravel()
+        rho_dig = np.digitize(ts.rho.mean(axis=0), bins=pv_bins)
+        pva_diff = np.array([pva_diff[rho_dig==i].mean() for i in range(pv_bins.shape[0])])
+        stats_df['pva_diff'].append(pva_diff)
+    return pd.DataFrame.from_dict(stats_df)
+
 def reformat_pvdiff_rho_stats():
     pass
 
@@ -227,3 +243,85 @@ def plot_sess_heatmaps(ts, fly_id, sess_name, vmin=-.5, vmax=.5, plot_times = np
 
     return fig, ax
     
+def plot_pva_diff_histograms(ts, fly_id, sess_name,
+                             bins = np.linspace(-np.pi, np.pi, num=17), 
+                             color='black'):
+    
+    fig, ax = plt.subplots()
+    centers = (bins[1:] + bins[:-1])/2
+
+    pva_diff = np.angle(np.exp(1j*(np.diff(ts.phi,axis=0))))
+
+    hist, _ = np.histogram(pva_diff, bins=bins)
+    hist = hist/hist.sum()
+
+    ax.fill_between(centers, hist, color=color, alpha=.4)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.set_xticks([-np.pi,0,np.pi], labels=[r'-$\pi$', '0', r'$\pi$'])
+    ax.set_xlabel(r'$\Delta$ PVA')
+    ax.set_ylabel('Proportion')
+    # ax.set_yticks([0,.05, .1,.15, .2, .25])
+    # ax.set_ylim([0,.25])
+    
+    fig.suptitle(f'{fly_id} - {sess_name}')
+    fig.tight_layout()
+    return fig, ax
+
+
+def plot_sess_histograms(ts_dict, bins = np.linspace(-np.pi, np.pi, num=17), 
+                         cmap='Greys'):
+    
+    fig_hist, ax_hist = plt.subplots()
+    fig_polar, ax_polar = plt.subplots(subplot_kw={'projection':'polar'})
+    centers = (bins[1:]+bins[:-1])/2
+
+
+    def plot_hist(key, cmap, hatch=None):
+        offset = ts_dict[key].offset
+        hist, _ = np.histogram(offset, bins=bins)
+        hist = hist/hist.sum()
+        
+        offset_c_mu = ts_dict[key].offset_c.mean()
+        
+        _cmap = plt.get_cmap(cmap)
+        color = _cmap(.8)
+        if hatch is not None:
+            ax_hist.fill_between(centers, hist, color='none', alpha=.4, hatch=hatch, edgecolor=color)
+            ax_polar.plot(np.angle(offset_c_mu)*np.ones([2,]), [0, np.abs(offset_c_mu)], color=color, linewidth=2, label=key,
+                          linestyle='--', alpha=.4)
+            
+        else:
+            ax_hist.fill_between(centers, hist, color=color, alpha=.4)
+            ax_polar.plot(np.angle(offset_c_mu)*np.ones([2,]), [0, np.abs(offset_c_mu)], color=color, linewidth=2, label=key)
+        ax_hist.set_title(key)        
+        ax_polar.set_title(key)
+        
+        
+        
+    for key in ts_dict.keys():
+        if key == 'fly':
+            fig_hist.suptitle(ts_dict[key])
+            fig_polar.suptitle(ts_dict[key])
+        else:
+            plot_hist(key, cmap)  
+        
+    
+    
+    ax_hist.spines['top'].set_visible(False)
+    ax_hist.spines['right'].set_visible(False)
+    ax_hist.set_xticks([-np.pi,0,np.pi], labels=[r'-$\pi$', '0', r'$\pi$'])
+    ax_hist.set_xlabel('Offset')
+    ax_hist.set_yticks([0,.05, .1,.15, .2, .25])
+    ax_hist.set_ylim([0,.25])
+    ax_hist.set_ylabel('Proportion')
+    
+    fig_hist.tight_layout()    
+    
+    ax_polar.set_xticks([0, np.pi/2, np.pi, 3*np.pi/2], ['0', r'$\pi$/2', r'$\pi$', r'3$\pi$/2'])
+    ax_polar.set_yticks([0,.2, .4, .6, .8])
+    ax_polar.set_title(ts_dict['fly'])
+    # ax_polar.legend()
+    fig_polar.tight_layout()
+    
+    return (fig_hist, ax_hist), (fig_polar, ax_polar)
