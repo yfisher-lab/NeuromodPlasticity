@@ -111,6 +111,7 @@ def rho_stats(sess_df, load_row, dh_bins):
                 'cl': [],
                 'rho1_dig': [],
                 'rho2_dig': [],
+                'pva_diff': [],
                 }
     for _, row in sess_df.iterrows():
         ts = session.GetTS(load_row(row), channels=[0,1])
@@ -128,6 +129,10 @@ def rho_stats(sess_df, load_row, dh_bins):
 
         rho2_dig = np.array([ts.rho[1, dh_dig == i].mean() for i in range(len(dh_bins))])
         stats_df['rho2_dig'].append(rho2_dig)
+
+        pvd = np.abs(np.angle(np.exp(1j*np.diff(ts.phi,axis=0)))).ravel()
+        pva_diff = np.array([pvd[dh_dig==i].mean() for i in range(len(dh_bins))])
+        stats_df['pva_diff'].append(pva_diff)
 
     return pd.DataFrame.from_dict(stats_df)
 
@@ -219,9 +224,9 @@ def plot_sess_heatmaps(ts, fly_id, sess_name, vmin=-.5, vmax=.5, plot_times = np
 
     phi_ = (ts.phi+np.pi)/2/np.pi*15
     cmap = plt.get_cmap(ch1_heatmap)
-    ax[2,0].scatter(x, phi_[0,:], color=cmap(.8), s=5)
+    ax[2,0].scatter(x, phi_[0,:], color=cmap(.8), s=5, alpha=.4)
     cmap = plt.get_cmap(ch2_heatmap)
-    ax[2,0].scatter(x, phi_[1,:], color=cmap(.8), s=5)
+    ax[2,0].scatter(x, phi_[1,:], color=cmap(.8), s=5, alpha=.4)
     fig.colorbar(h, ax=ax[2,0])
 
     phi_diff = np.angle(np.exp(1j*np.diff(ts.phi, axis=0)))

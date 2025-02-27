@@ -42,8 +42,8 @@ def plot_sess_heatmaps(ts_dict, vmin=-.5, vmax=.5, plot_times = np.arange(0, 360
         ax[row,0].set_ylabel('ROIs')
         ax[row,0].set_yticks([-0.5,7.5,15.5], labels=[r'0', r'$\pi$', r'$2\pi$'])
         
-        _plot_times = plot_times[plot_times<ts_dict[key].time.iloc[-1]]
-        ax[row,0].set_xticks(get_time_ticks_inds(time, _plot_times), labels=plot_times)
+        _plot_times = plot_times[plot_times<time.iloc[-1]]
+        ax[row,0].set_xticks(get_time_ticks_inds(time, _plot_times), labels=_plot_times)
         ax[row,0].set_xlabel('Time (s)')
         
         ax[row,0].set_title(key)
@@ -79,13 +79,7 @@ def plot_sess_histograms(ts_dict, bins = np.linspace(-np.pi, np.pi, num=17)):
             
         else:
             ax_hist.fill_between(centers, hist, color=color, alpha=.4)
-            ax_polar.plot(np.angle(offset_c_mu)*np.ones([2,]), [0, np.abs(offset_c_mu)], color=color, linewidth=2, label=key)
-        
-        
-        
-        
-            
-        
+            ax_polar.plot(np.angle(offset_c_mu)*np.ones([2,]), [0, np.abs(offset_c_mu)], color=color, linewidth=2, label=key)        
         
     plot_hist('closed_loop 1', 'black')
     plot_hist('dark', plt.cm.Purples(.8), hatch=None)

@@ -199,7 +199,7 @@ def reformat_rho_stats_for_reg(grouped_stats, dh_bins):
 
 
 def plot_sess_heatmaps(ts_dict, vmin=-.5, vmax=.5, plot_times = np.arange(0, 360, 60),
-                       cmap='Greys'):
+                       cmap='Greys', twindow=None):
     fig = plt.figure(figsize=[7.5,5])
     gs = gridspec.GridSpec(3,1, height_ratios=[3,1,1])
     
@@ -219,20 +219,29 @@ def plot_sess_heatmaps(ts_dict, vmin=-.5, vmax=.5, plot_times = np.arange(0, 360
     def plot_rows(key, cmap):
         dff = ts_dict[key].dff
         time = ts_dict[key].time
+
+
+        if twindow is not None:
+            mask = (time>=twindow[0]) * (time<=twindow[1])
+        else:
+            mask = np.ones_like(time)>0
+        dff = dff[:, mask]
+        time = time[mask]
+        
         x = np.arange(dff.shape[1])
-        heading_ = (ts_dict[key].heading+np.pi)/(2*np.pi)*15
+        heading_ = (ts_dict[key].heading[mask]+np.pi)/(2*np.pi)*15
         
         h = ax_heatmap.imshow(dff, aspect='auto', cmap=cmap, vmin=vmin, vmax=vmax)
         fig.colorbar(h, ax=ax_heatmap)
         # ax_heatmap.scatter(x, heading_, color='orange', s=5, alpha=.5)
         
-        ax_heading.scatter(x, ts_dict[key].heading+np.pi, color='orange', s=5)
+        ax_heading.scatter(x, ts_dict[key].heading[mask]+np.pi, color='orange', s=5)
         ax_heading.set_ylim([2*np.pi, 0])
         fig.colorbar(h, ax=ax_heading)
 
         # dh = np.diff(np.unwrap(ts_dict[key].heading_sm))/ts_dict[key].dt
         # dh = np.abs(np.concatenate([[0],dh]))
-        ax_dh.plot(x, np.abs(ts_dict[key].dh), color='black')
+        ax_dh.plot(x, np.abs(ts_dict[key].dh[mask]), color='black')
         
         fig.colorbar(h, ax=ax_dh)
         
@@ -240,8 +249,8 @@ def plot_sess_heatmaps(ts_dict, vmin=-.5, vmax=.5, plot_times = np.arange(0, 360
         ax_heatmap.set_ylabel('ROIs')
         ax_heatmap.set_yticks([-0.5,7.5,15.5], labels=[r'0', r'$\pi$', r'$2\pi$'])
         
-        
-        ax_heatmap.set_xticks(get_time_ticks_inds(time, plot_times), labels=plot_times)
+        _plot_times = plot_times[plot_times<time.iloc[-1]]
+        ax_heatmap.set_xticks(get_time_ticks_inds(time, _plot_times), labels=_plot_times)
         ax_heatmap.set_xlabel('Time (s)')
 
         ax_heading.set_yticks([0, np.pi, 2*np.pi], labels=[r'0', r'$\pi$', r'$2\pi$'])
