@@ -260,7 +260,7 @@ def plot_pva_diff_histograms(ts, fly_id, sess_name,
     hist, _ = np.histogram(pva_diff, bins=bins)
     hist = hist/hist.sum()
 
-    ax.fill_between(centers, hist, color=color, alpha=.4)
+    ax.fill_between(edges[:-1], hist, color=color, alpha=.4)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.set_xticks([-np.pi,0,np.pi], labels=[r'-$\pi$', '0', r'$\pi$'])
@@ -274,42 +274,41 @@ def plot_pva_diff_histograms(ts, fly_id, sess_name,
     return fig, ax
 
 
-def plot_sess_histograms(ts_dict, bins = np.linspace(-np.pi, np.pi, num=17), 
-                         cmap='Greys'):
+def plot_sess_histograms(ts, fly_id, sess_name, bins = np.linspace(-np.pi, np.pi, num=17), 
+                         cmaps=('Greys', 'Greens')):
     
     fig_hist, ax_hist = plt.subplots()
     fig_polar, ax_polar = plt.subplots(subplot_kw={'projection':'polar'})
     centers = (bins[1:]+bins[:-1])/2
 
 
-    def plot_hist(key, cmap, hatch=None):
-        offset = ts_dict[key].offset
+    def plot_hist(ch, cmap, hatch=None):
+        offset = ts.offset[ch,:]
         hist, _ = np.histogram(offset, bins=bins)
         hist = hist/hist.sum()
         
-        offset_c_mu = ts_dict[key].offset_c.mean()
+        offset_c_mu = ts.offset_c[ch,:].mean()
         
         _cmap = plt.get_cmap(cmap)
         color = _cmap(.8)
         if hatch is not None:
             ax_hist.fill_between(centers, hist, color='none', alpha=.4, hatch=hatch, edgecolor=color)
-            ax_polar.plot(np.angle(offset_c_mu)*np.ones([2,]), [0, np.abs(offset_c_mu)], color=color, linewidth=2, label=key,
+            ax_polar.plot(np.angle(offset_c_mu)*np.ones([2,]), [0, np.abs(offset_c_mu)], color=color, linewidth=2,
                           linestyle='--', alpha=.4)
             
         else:
             ax_hist.fill_between(centers, hist, color=color, alpha=.4)
-            ax_polar.plot(np.angle(offset_c_mu)*np.ones([2,]), [0, np.abs(offset_c_mu)], color=color, linewidth=2, label=key)
-        ax_hist.set_title(key)        
-        ax_polar.set_title(key)
+            ax_polar.plot(np.angle(offset_c_mu)*np.ones([2,]), [0, np.abs(offset_c_mu)], color=color, linewidth=2)
+       
         
         
         
-    for key in ts_dict.keys():
-        if key == 'fly':
-            fig_hist.suptitle(ts_dict[key])
-            fig_polar.suptitle(ts_dict[key])
-        else:
-            plot_hist(key, cmap)  
+    
+    fig_hist.suptitle(f'{fly_id} - {sess_name}')
+    fig_polar.suptitle(f'{fly_id} - {sess_name}')
+        
+    plot_hist(0, cmaps[0])
+    plot_hist(1, cmaps[1])  
         
     
     
@@ -325,7 +324,7 @@ def plot_sess_histograms(ts_dict, bins = np.linspace(-np.pi, np.pi, num=17),
     
     ax_polar.set_xticks([0, np.pi/2, np.pi, 3*np.pi/2], ['0', r'$\pi$/2', r'$\pi$', r'3$\pi$/2'])
     ax_polar.set_yticks([0,.2, .4, .6, .8])
-    ax_polar.set_title(ts_dict['fly'])
+    
     # ax_polar.legend()
     fig_polar.tight_layout()
     
