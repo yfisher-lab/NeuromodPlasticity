@@ -1,7 +1,14 @@
 README.md
 setup.py
 NeuromodPlasticity/__init__.py
+NeuromodPlasticity/connectomics.py
+NeuromodPlasticity/dual_imaging.py
+NeuromodPlasticity/epg_across_dark.py
+NeuromodPlasticity/grab_sensors.py
+NeuromodPlasticity/params.py
+NeuromodPlasticity/remapping.py
 NeuromodPlasticity/session.py
+NeuromodPlasticity/tbh_rnai.py
 NeuromodPlasticity/utilities.py
 NeuromodPlasticity.egg-info/PKG-INFO
 NeuromodPlasticity.egg-info/SOURCES.txt
