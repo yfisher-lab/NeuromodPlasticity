@@ -36,7 +36,7 @@ class GetTS():
         
         
     def get_ts(self, channels=-1, exp_detrend=True, zscore=True, background_ts='background',
-               circ_sigma=.5, t_sigma=.1, h_sigma=.1, neural_shift=-.2):
+               circ_sigma=.5, t_sigma=.1, h_sigma=.1, neural_shift=-.2, dh_sigma=0):
         
         
         
@@ -50,14 +50,19 @@ class GetTS():
         
         self.heading = np.angle(np.exp(1j*(-1*self.pp.voltage_recording_aligned[' Heading'].to_numpy()-np.pi)))
         x_h, y_h = st2p.utilities.pol2cart(np.ones_like(self.heading), self.heading)
-        x_h, y_h = sp.ndimage.gaussian_filter1d(x_h, h_sigma/self.dt), sp.ndimage.gaussian_filter1d(y_h, h_sigma/self.dt)
+        if h_sigma > 0:
+            x_h, y_h = sp.ndimage.gaussian_filter1d(x_h, h_sigma/self.dt), sp.ndimage.gaussian_filter1d(y_h, h_sigma/self.dt)
         _, self.heading_sm = st2p.utilities.cart2pol(x_h, y_h)
         
         self.dff = self.pp.calculate_zscored_F('rois', exp_detrend=exp_detrend, zscore=zscore, 
                                                background_ts=background_ts)[channels,:,:]
         
-        self.dff = sp.ndimage.gaussian_filter1d(sp.ndimage.gaussian_filter1d(self.dff, t_sigma/self.dt, axis=-1),
-                                                circ_sigma,axis=-2, mode='wrap')
+        if t_sigma > 0:
+            self.dff = sp.ndimage.gaussian_filter1d(self.dff, t_sigma/self.dt, axis=-1)
+        if circ_sigma > 0:
+            self.dff = sp.ndimage.gaussian_filter1d(self.dff, circ_sigma, axis=-2, mode='wrap')
+        # self.dff = sp.ndimage.gaussian_filter1d(sp.ndimage.gaussian_filter1d(self.dff, t_sigma/self.dt, axis=-1),
+        #                                         circ_sigma,axis=-2, mode='wrap')
         
         self.dff = np.roll(self.dff, neural_shift_inds, axis=-1)
         
@@ -89,6 +94,8 @@ class GetTS():
 
         dh = np.diff(np.unwrap(self.heading_sm))/self.dt
         self.dh = np.concatenate([[0], dh])
+        if dh_sigma > 0:
+            self.dh = sp.ndimage.gaussian_filter1d(self.dh, dh_sigma/self.dt)
         
         
     def heading_aligned(self):

@@ -106,7 +106,7 @@ def offset_stats_unique(stats_df):
             stats_df_unique['fwhm_ch2'].append(stats_df.loc[dark_mask, 'fwhm_ch2'].mean())
     return pd.DataFrame.from_dict(stats_df_unique)
 
-def rho_stats(sess_df, load_row, dh_bins):
+def rho_stats(sess_df, load_row, dh_bins, abs=True):
     stats_df = {'fly_id': [],
                 'cl': [],
                 'rho1_dig': [],
@@ -114,15 +114,18 @@ def rho_stats(sess_df, load_row, dh_bins):
                 'pva_diff': [],
                 }
     for _, row in sess_df.iterrows():
-        ts = session.GetTS(load_row(row), channels=[0,1])
+        ts = session.GetTS(load_row(row), channels=[0,1], dh_sigma=.3)
 
         stats_df['fly_id'].append(row['fly_id'])
         stats_df['cl'].append(row['closed_loop'])
 
-        dh = np.diff(np.unwrap(ts.heading_sm))/ts.dt
-        dh = np.concatenate([[0],dh])
-        
-        dh_dig = np.digitize(np.abs(dh), dh_bins) - 1
+        # dh = np.diff(np.unwrap(ts.heading_sm))/ts.dt
+        # dh = np.concatenate([[0],dh])
+        dh = ts.dh
+        if abs:
+            dh_dig = np.digitize(np.abs(dh), dh_bins) - 1
+        else:
+            dh_dig = np.digitize(dh, dh_bins) - 1
 
         rho1_dig = np.array([ts.rho[0, dh_dig == i].mean() for i in range(len(dh_bins))])
         stats_df['rho1_dig'].append(rho1_dig)
@@ -130,7 +133,10 @@ def rho_stats(sess_df, load_row, dh_bins):
         rho2_dig = np.array([ts.rho[1, dh_dig == i].mean() for i in range(len(dh_bins))])
         stats_df['rho2_dig'].append(rho2_dig)
 
-        pvd = np.abs(np.angle(np.exp(1j*np.diff(ts.phi,axis=0)))).ravel()
+        if abs:
+            pvd = np.abs(np.angle(np.exp(1j*np.diff(ts.phi,axis=0)))).ravel()
+        else:
+            pvd = np.angle(np.exp(1j*np.diff(ts.phi,axis=0))).ravel()
         pva_diff = np.array([pvd[dh_dig==i].mean() for i in range(len(dh_bins))])
         stats_df['pva_diff'].append(pva_diff)
 
