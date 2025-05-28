@@ -142,6 +142,43 @@ def rho_stats(sess_df, load_row, dh_bins, abs=True):
 
     return pd.DataFrame.from_dict(stats_df)
 
+def rho_stats_DTE(data, channel_lookup, dh_bins, abs=True):
+    stats_df = {'fly_id': [],
+                'cl': [],
+                'rho1_dig': [],
+                'rho2_dig': [],
+                'pva_diff': [],
+                }
+    for fly, multitrial_dict in data.items():
+        for trial_name, trial_dict in multitrial_dict.items():
+            ts = session.GetTS_DTE(trial_dict, channel_lookup[fly], dh_sigma=.3)
+        
+
+            stats_df['fly_id'].append(fly)
+            stats_df['cl'].append(1)
+
+        
+            dh = ts.dh
+            if abs:
+                dh_dig = np.digitize(np.abs(dh), dh_bins) - 1
+            else:
+                dh_dig = np.digitize(dh, dh_bins) - 1
+
+            rho1_dig = np.array([ts.rho[0, dh_dig == i].mean() for i in range(len(dh_bins))])
+            stats_df['rho1_dig'].append(rho1_dig)
+
+            rho2_dig = np.array([ts.rho[1, dh_dig == i].mean() for i in range(len(dh_bins))])
+            stats_df['rho2_dig'].append(rho2_dig)
+
+            if abs:
+                pvd = np.abs(np.angle(np.exp(1j*np.diff(ts.phi,axis=0)))).ravel()
+            else:
+                pvd = np.angle(np.exp(1j*np.diff(ts.phi,axis=0))).ravel()
+            pva_diff = np.array([pvd[dh_dig==i].mean() for i in range(len(dh_bins))])
+            stats_df['pva_diff'].append(pva_diff)
+
+    return pd.DataFrame.from_dict(stats_df)
+
 def reformat_rho_stats():
     pass
 
