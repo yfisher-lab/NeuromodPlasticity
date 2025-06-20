@@ -2,6 +2,61 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
+def plot_transpose_heatmaps(ts_dict, vmin=-.5, vmax=.5, plot_times = np.arange(0, 360, 60), twindow = None):
+    fig, ax = plt.subplots(2, 3, figsize=[6,15], sharey=True, sharex=True)
+    
+    
+    def get_time_ticks_inds(time, plot_times):
+        inds = []
+        for t in plot_times:
+            inds.append(np.argmin(np.abs(time-t)))
+        return inds
+        
+    
+    def plot_col(key, col, cmap):
+        dff = ts_dict[key].dff
+        time = ts_dict[key].time
+
+        if twindow is not None:
+            mask = (time>=twindow[0]) * (time<=twindow[1])
+        else:
+            mask = np.ones_like(time)>0
+        dff= dff[:,mask]
+        time = time[mask]
+
+
+        x = np.arange(dff.shape[1])
+        heading_ = (ts_dict[key].heading[mask]+np.pi)/(2*np.pi)*15
+        h = ax[0,col].imshow(dff.T, aspect='auto', cmap=cmap, vmin=vmin, vmax=vmax)
+        fig.colorbar(h, ax=ax[0, col])
+        
+        ax[0,col].scatter(heading_, x, color='orange', s=5)
+        
+        h = ax[1, col].imshow(ts_dict[key].dff_h_aligned[:,mask].T, aspect='auto', cmap=cmap, vmin=vmin, vmax=vmax)
+        fig.colorbar(h, ax=ax[1, col])
+        ax[1, col].scatter(7.5*np.ones_like(heading_), x, color='orange', s=5)
+        
+        ax[0, col].set_xlabel('ROIs')
+        ax[0, col].set_xticks([-0.5,7.5,15.5], labels=[r'0', r'$\pi$', r'$2\pi$'])
+        
+        _plot_times = plot_times[plot_times<time.iloc[-1]]
+        ax[0, col].set_yticks(get_time_ticks_inds(time, _plot_times), labels=_plot_times)
+        ax[0, col].set_ylabel('Time (s)')
+        
+        ax[0, col].set_title(key)
+        
+        
+        
+    
+    plot_col('closed_loop 1', 0, 'Greys')
+    plot_col('dark', 1, 'Purples')
+    plot_col('closed_loop 2', 2, 'Greys')
+    fig.suptitle(ts_dict['fly'])
+    
+    fig.tight_layout()
+    
+    return fig, ax
+
 
 
 
