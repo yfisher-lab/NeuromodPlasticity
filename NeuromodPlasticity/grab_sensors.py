@@ -200,7 +200,7 @@ def reformat_rho_stats_for_reg(grouped_stats, dh_bins):
 
 def plot_sess_heatmaps(ts_dict, vmin=-.5, vmax=.5, plot_times = np.arange(0, 360, 60),
                        cmap='Greys', twindow=None):
-    fig = plt.figure(figsize=[7.5,5])
+    fig = plt.figure(figsize=[15,5])
     gs = gridspec.GridSpec(3,1, height_ratios=[3,1,1])
     
     ax_heatmap = fig.add_subplot(gs[0])
@@ -273,6 +273,85 @@ def plot_sess_heatmaps(ts_dict, vmin=-.5, vmax=.5, plot_times = np.arange(0, 360
     fig.tight_layout()
     
     return fig
+
+def plot_transpose_heatmaps(ts_dict, vmin=-.5, vmax=.5, plot_times = np.arange(0, 360, 60),
+                       cmap='Greys', twindow=None):
+    fig = plt.figure(figsize=[8,15])
+    gs = gridspec.GridSpec(1,3, width_ratios=[4,2,2])
+    
+    ax_heatmap = fig.add_subplot(gs[0])
+    ax_heading = fig.add_subplot(gs[1], sharey=ax_heatmap)
+    ax_dh = fig.add_subplot(gs[2], sharey=ax_heatmap)
+    
+    
+    
+    def get_time_ticks_inds(time, plot_times):
+        inds = []
+        for t in plot_times:
+            inds.append(np.argmin(np.abs(time-t)))
+        return inds
+        
+    
+    def plot_cols(key, cmap):
+        dff = ts_dict[key].dff
+        time = ts_dict[key].time
+
+
+        if twindow is not None:
+            mask = (time>=twindow[0]) * (time<=twindow[1])
+        else:
+            mask = np.ones_like(time)>0
+        dff = dff[:, mask]
+        time = time[mask]
+        
+        x = np.arange(dff.shape[1])
+        heading_ = (ts_dict[key].heading[mask]+np.pi)/(2*np.pi)*15
+        
+        h = ax_heatmap.imshow(dff.T, aspect='auto', cmap=cmap, vmin=vmin, vmax=vmax)
+        fig.colorbar(h, ax=ax_heatmap)
+        # ax_heatmap.scatter(heading_, x, color='orange', s=5, alpha=.5)
+        
+        ax_heading.scatter(ts_dict[key].heading[mask]+np.pi,x,  color='orange', s=5)
+        ax_heading.set_xlim([2*np.pi, 0])
+        fig.colorbar(h, ax=ax_heading)
+
+        # dh = np.diff(np.unwrap(ts_dict[key].heading_sm))/ts_dict[key].dt
+        # dh = np.abs(np.concatenate([[0],dh]))
+        ax_dh.plot(np.abs(ts_dict[key].dh[mask]), x, color='black')
+        
+        fig.colorbar(h, ax=ax_dh)
+        
+
+        ax_heatmap.set_xlabel('ROIs')
+        ax_heatmap.set_xticks([-0.5,7.5,15.5], labels=[r'0', r'$\pi$', r'$2\pi$'])
+        
+        _plot_times = plot_times[plot_times<time.iloc[-1]]
+        ax_heatmap.set_yticks(get_time_ticks_inds(time, _plot_times), labels=_plot_times)
+        ax_heatmap.set_ylabel('Time (s)')
+
+        ax_heading.set_xticks([0, np.pi, 2*np.pi], labels=[r'0', r'$\pi$', r'$2\pi$'])
+        ax_heading.set_xlabel('Heading')
+        ax_heading.set_xlim([0, 2*np.pi])
+
+        ax_dh.set_xlim([0, 10])
+        ax_dh.set_xticks([0, 10])
+        ax_dh.set_xlabel('rot speed')
+        
+        ax_heatmap.set_title(key)
+        
+        
+        
+    for key in ts_dict.keys():
+        if key == 'fly':
+            fig.suptitle(ts_dict[key])
+        else:
+            plot_cols(key, cmap)
+    
+    fig.tight_layout()
+    
+    return fig
+
+
 
 def plot_sess_histograms(ts_dict, bins = np.linspace(-np.pi, np.pi, num=17), 
                          cmap='Greys'):

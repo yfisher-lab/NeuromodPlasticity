@@ -1,5 +1,8 @@
 import numpy as np
+import scipy as sp
 from matplotlib import pyplot as plt
+from matplotlib.gridspec import GridSpec as GS
+from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
 
 
 def plot_transpose_heatmaps(ts_dict, vmin=-.5, vmax=.5, plot_times = np.arange(0, 360, 60), twindow = None):
@@ -157,3 +160,84 @@ def plot_sess_histograms(ts_dict, bins = np.linspace(-np.pi, np.pi, num=17)):
     fig_polar.tight_layout()
     
     return (fig_hist, ax_hist), (fig_polar, ax_polar)
+
+
+def plot_sess_heatmaps_w_hist(ts_dict, bins = np.linspace(-np.pi, np.pi, num=17),vmin=-.5, vmax=.5, 
+                              plot_times = np.arange(0, 360, 60), twindow = None):
+    
+    fig = plt.figure(figsize=[15,6])
+    gs = GS(3,4, figure=fig, width_ratios=[12,1,.8, .3],wspace=.05,hspace=.8)
+    heatmap_axs = [fig.add_subplot(gs[0,0])]
+    heatmap_axs.extend([fig.add_subplot(gs[i,0],sharey=heatmap_axs[0]) for i in range(1,3)])
+    hist_axs = [fig.add_subplot(gs[0,1])]
+    hist_axs.extend([fig.add_subplot(gs[i,1],sharex=hist_axs[0]) for i in range(1,3)])
+    cbar_ax = [fig.add_subplot(gs[i,3]) for i in range(3)]
+    
+    def get_time_ticks_inds(time, plot_times):
+        inds = []
+        for t in plot_times:
+            inds.append(np.argmin(np.abs(time-t)))
+        return inds
+    
+    def plot_row(key, row, cmap, hatch=None):
+        dff = ts_dict[key].dff
+        heading = ts_dict[key].heading
+        offset = ts_dict[key].offset
+        
+        time = ts_dict[key].time
+
+        x = np.arange(dff.shape[1])
+        heading_ = (heading + np.pi) / (2 * np.pi) * 15
+        h = heatmap_axs[row].imshow(dff, aspect='auto', cmap=cmap, interpolation='none', vmin=-.5, vmax=3)
+        fig.colorbar(h, cax=cbar_ax[row])
+        heatmap_axs[row].scatter(x, heading_, color='orange', s=5)
+
+        heatmap_axs[row].set_ylabel('ROIs')
+        heatmap_axs[row].set_yticks([-0.5,7.5,15.5], labels=[r'0', r'$\pi$', r'$2\pi$'])
+        heatmap_axs[row].yaxis.set_minor_locator(AutoMinorLocator())
+        
+        _plot_times = plot_times[plot_times<time.iloc[-1]]
+        heatmap_axs[row].set_xticks(get_time_ticks_inds(time, _plot_times), labels=_plot_times)
+        heatmap_axs[row].set_xlabel('Time (s)')
+        
+        heatmap_axs[row].set_title(key)
+
+        
+      
+        centers = (bins[:-1] + bins[1:]) / 2
+        hist, _ = np.histogram(offset, bins=bins)
+        hist = hist / hist.sum()  # normalize
+        if hatch is None:
+            hist_axs[row].fill_betweenx(centers, 0, hist, color=cmap(.8), alpha=.5)
+        else:
+            hist_axs[row].fill_betweenx(centers, 0, hist, alpha=1, hatch=hatch,color='none', edgecolor=cmap(.8))
+
+        # hist_axs[row].set_yticks([-np.pi,-3*np.pi/4, -np.pi/2, -np.pi/4, 0, np.pi/4, np.pi/2, 3*np.pi/4, np.pi], 
+        #                          labels=[r'-$\pi$', '', '', '', r'0','', '', '', r'$\pi$'])
+        hist_axs[row].set_yticks([-np.pi, 0,  np.pi], 
+                                 labels=[r'-$\pi$',  r'0', r'$\pi$'])
+        hist_axs[row].yaxis.set_minor_locator(AutoMinorLocator())
+        hist_axs[row].set_ylim([np.pi, -np.pi])
+        # hist_axs[row].set_xlim(left=0)
+        hist_axs[row].grid(True, axis='y', linestyle='-', alpha=0.8,linewidth=2.5, which='major')
+        ygridlines = hist_axs[row].get_ygridlines()
+        ygridlines[1].set_color('orange')
+        hist_axs[row].grid(True, axis='y', linestyle=':', alpha=0.5, linewidth=1.5, which='minor')
+        hist_axs[row].set_ylabel('Offset')
+        hist_axs[row].yaxis.tick_right()
+        hist_axs[row].yaxis.set_label_position('right')
+        hist_axs[row].set_xlabel('Prop.')
+        offset_var = sp.stats.circvar(offset, low=-np.pi, high=np.pi)
+        hist_axs[row].set_title(f"variance={offset_var:.2f}" )
+      
+
+        
+
+
+
+    plot_row('closed_loop 1', 0, plt.cm.Greys)
+    plot_row('dark', 1, plt.cm.Purples, hatch=None)
+    plot_row('closed_loop 2', 2, plt.cm.Greys, hatch='/')
+    hist_axs[0].set_xlim(left=0)
+    fig.suptitle(ts_dict['fly'])
+    return fig, (heatmap_axs, hist_axs, cbar_ax)  # Return the figure and axes for further customization if needed

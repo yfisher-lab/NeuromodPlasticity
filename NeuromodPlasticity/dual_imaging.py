@@ -303,7 +303,7 @@ def plot_pva_diff_histograms(ts, fly_id, sess_name,
     hist, _ = np.histogram(pva_diff, bins=bins)
     hist = hist/hist.sum()
 
-    ax.fill_between(edges[:-1], hist, color=color, alpha=.4)
+    ax.fill_between(bins[:-1], hist, color=color, alpha=.4)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.set_xticks([-np.pi,0,np.pi], labels=[r'-$\pi$', '0', r'$\pi$'])
@@ -372,3 +372,69 @@ def plot_sess_histograms(ts, fly_id, sess_name, bins = np.linspace(-np.pi, np.pi
     fig_polar.tight_layout()
     
     return (fig_hist, ax_hist), (fig_polar, ax_polar)
+
+
+def plot_transpose_heatmaps(ts, fly_id, sess_name, vmin=-.5, vmax=.5, plot_times = np.arange(0,360,60),
+                       ch1_heatmap = 'Greys', ch2_heatmap = 'Greens'):
+
+    fig = plt.figure(figsize=[9, 15])
+
+    gs = gridspec.GridSpec(1,4, width_ratios=[2,2,1,1])
+    
+    ax = [fig.add_subplot(gs[0]), 
+          fig.add_subplot(gs[1]), 
+          fig.add_subplot(gs[2]), 
+          fig.add_subplot(gs[3])]
+    
+
+    def get_time_ticks_inds(time, plot_times):
+        inds = []
+        for t in plot_times:
+            inds.append(np.argmin(np.abs(time-t)))
+        return inds
+    
+    x = np.arange(ts.dff.shape[-1])
+
+    heading_ = (ts.heading+np.pi)/(2*np.pi)*15
+
+    h = ax[0].imshow(ts.dff[0, :, :].T, aspect='auto', cmap=ch1_heatmap, vmin=vmin, vmax=vmax)
+    ax[0].scatter(heading_, x, s=5, color='orange')
+    fig.colorbar(h, ax=ax[0])
+
+    
+    h = ax[1].imshow(ts.dff[1, :, :].T, aspect='auto', cmap=ch2_heatmap, vmin=vmin, vmax=vmax)
+    ax[1].scatter(heading_, x, s=5, c='orange')
+    fig.colorbar(h, ax=ax[1])
+
+    
+    ax[0].set_title('Ch 1')
+    ax[1].set_title('Ch 2')
+
+    phi_ = (ts.phi+np.pi)/2/np.pi*15
+    cmap = plt.get_cmap(ch1_heatmap)
+    ax[2].scatter(phi_[0,:], x, color=cmap(.8), s=5, alpha=.4)
+    cmap = plt.get_cmap(ch2_heatmap)
+    ax[2].scatter(phi_[1,:], x, color=cmap(.8), s=5, alpha=.4)
+    fig.colorbar(h, ax=ax[2])
+
+    phi_diff = np.angle(np.exp(1j*np.diff(ts.phi, axis=0)))
+    phi_diff = (phi_diff+np.pi)/2/np.pi*15
+    ax[3].scatter(phi_diff, x, c='blue', s=5)
+    fig.colorbar(h, ax=ax[3])
+
+    plot_times = plot_times[plot_times<ts.time.iloc[-1]]
+    for a in ax:
+        a.set_xlabel('ROIs')
+        a.set_xticks([-0.5,7.5,15.5], labels=[r'0', r'$\pi$', r'$2\pi$'])
+        
+        a.set_yticks(get_time_ticks_inds(ts.time, plot_times), labels=plot_times)
+        a.set_ylabel('Time (s)')
+
+        a.set_ylim([ts.dff.shape[-1]-0.5, -.5])
+
+    
+    fig.suptitle(f'{fly_id} - {sess_name}')
+    fig.tight_layout()
+
+    return fig, ax
+    
