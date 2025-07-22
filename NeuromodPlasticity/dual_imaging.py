@@ -3,7 +3,10 @@ import numpy as np
 import scipy as sp
 import pandas as pd
 from matplotlib import pyplot as plt
-import matplotlib.gridspec as gridspec
+
+from matplotlib.gridspec import GridSpec as GS
+from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
+
 
 import SessionTools.two_photon as st2p
 from . import session
@@ -40,7 +43,7 @@ def offset_stats(sess_df, load_row):
         stats_df['offset_var_ch1'].append(offset_var[0])
         stats_df['offset_var_ch2'].append(offset_var[1])
 
-        offset_diff = np.angle(np.exp(1j*(ts.offset[0]-ts.offset[1])))
+        offset_diff = np.angle(np.exp(1j*(ts.offset[0,:]-ts.offset[1,:])))
         stats_df['offset_diff'].append(sp.stats.circmean(offset_diff))
         stats_df['abs_offset_diff'].append(sp.stats.circmean(np.abs(offset_diff)))
 
@@ -246,19 +249,23 @@ def plot_sess_heatmaps(ts, fly_id, sess_name, vmin=-.5, vmax=.5, plot_times = np
 
     heading_ = (ts.heading+np.pi)/(2*np.pi)*15
 
-    h = ax[0, 0].imshow(ts.dff[0, :, :], aspect='auto', cmap=ch1_heatmap, vmin=vmin, vmax=vmax)
+    h = ax[0, 0].imshow(ts.dff[0, :, :], aspect='auto', interpolation='none',
+                        cmap=ch1_heatmap, vmin=vmin, vmax=vmax)
     ax[0, 0].scatter(x, heading_, s=5, color='orange')
     fig.colorbar(h, ax=ax[0,0])
 
-    h = ax[0, 1].imshow(ts.dff_h_aligned[0, :, :], aspect='auto', cmap=ch1_heatmap, vmin=vmin, vmax=vmax)
+    h = ax[0, 1].imshow(ts.dff_h_aligned[0, :, :], aspect='auto', interpolation='none',
+                        cmap=ch1_heatmap, vmin=vmin, vmax=vmax)
     ax[0, 1].scatter(x, 7.5*np.ones_like(heading_), s=5, color='orange')
     fig.colorbar(h, ax=ax[0,1])
 
-    h = ax[1,0].imshow(ts.dff[1, :, :], aspect='auto', cmap=ch2_heatmap, vmin=vmin, vmax=vmax)
+    h = ax[1,0].imshow(ts.dff[1, :, :], aspect='auto', interpolation='none',
+                       cmap=ch2_heatmap, vmin=vmin, vmax=vmax)
     ax[1,0].scatter(x, heading_, s=5, c='orange')
     fig.colorbar(h, ax=ax[1,0])
 
-    h = ax[1, 1].imshow(ts.dff_h_aligned[1, :, :], aspect='auto', cmap=ch2_heatmap, vmin=vmin, vmax=vmax)
+    h = ax[1, 1].imshow(ts.dff_h_aligned[1, :, :], aspect='auto', interpolation='none',
+                        cmap=ch2_heatmap, vmin=vmin, vmax=vmax)
     ax[1, 1].scatter(x, 7.5*np.ones_like(heading_), s=5, color='orange')
     fig.colorbar(h, ax=ax[1,1])
 
@@ -379,7 +386,7 @@ def plot_transpose_heatmaps(ts, fly_id, sess_name, vmin=-.5, vmax=.5, plot_times
 
     fig = plt.figure(figsize=[9, 15])
 
-    gs = gridspec.GridSpec(1,4, width_ratios=[2,2,1,1])
+    gs = GS(1,4, width_ratios=[2,2,1,1])
     
     ax = [fig.add_subplot(gs[0]), 
           fig.add_subplot(gs[1]), 
@@ -397,12 +404,14 @@ def plot_transpose_heatmaps(ts, fly_id, sess_name, vmin=-.5, vmax=.5, plot_times
 
     heading_ = (ts.heading+np.pi)/(2*np.pi)*15
 
-    h = ax[0].imshow(ts.dff[0, :, :].T, aspect='auto', cmap=ch1_heatmap, vmin=vmin, vmax=vmax)
+    h = ax[0].imshow(ts.dff[0, :, :].T, aspect='auto', interpolation='none',
+                     cmap=ch1_heatmap, vmin=vmin, vmax=vmax)
     ax[0].scatter(heading_, x, s=5, color='orange')
     fig.colorbar(h, ax=ax[0])
 
     
-    h = ax[1].imshow(ts.dff[1, :, :].T, aspect='auto', cmap=ch2_heatmap, vmin=vmin, vmax=vmax)
+    h = ax[1].imshow(ts.dff[1, :, :].T, aspect='auto', interpolation='none',
+                     cmap=ch2_heatmap, vmin=vmin, vmax=vmax)
     ax[1].scatter(heading_, x, s=5, c='orange')
     fig.colorbar(h, ax=ax[1])
 
@@ -438,3 +447,89 @@ def plot_transpose_heatmaps(ts, fly_id, sess_name, vmin=-.5, vmax=.5, plot_times
 
     return fig, ax
     
+
+
+def plot_sess_heatmaps_w_hist(ts, fly_id, sess_name, vmin=-.5, vmax=3, plot_times = np.arange(0,360,60),
+                       ch1_heatmap = 'Greys', ch2_heatmap = 'Greens', twindow=None,
+                       bins = np.linspace(-np.pi, np.pi, num=17)):
+    
+    fig = plt.figure(figsize=[8,4])
+    gs = GS(2,4, figure=fig, width_ratios=[6,1,.8, .2],wspace=.05,hspace=.8)
+    heatmap_axs = [fig.add_subplot(gs[0,0]), fig.add_subplot(gs[1,0])]
+    hist_axs = [fig.add_subplot(gs[0,1]), fig.add_subplot(gs[1,1])]
+    cbar_ax = [fig.add_subplot(gs[i,3]) for i in range(2)]
+
+
+    def get_time_ticks_inds(time, plot_times):
+        inds = []
+        for t in plot_times:
+            inds.append(np.argmin(np.abs(time-t)))
+        return inds
+    
+    def plot_row(ch, row, cmap, title, hatch=None):
+        dff = ts.dff[ch,:,:]
+        heading = ts.heading
+        offset = ts.offset[ch,:]
+        
+        time = ts.time
+
+        if twindow is not None:
+            mask = (time>=twindow[0]) * (time<=twindow[1])
+        else:
+            mask = np.ones_like(time)>0
+
+        dff= dff[:,mask]
+        time = time[mask]
+        heading = heading[mask]
+
+        x = np.arange(dff.shape[1])
+        heading_ = (heading + np.pi) / (2 * np.pi) * 15
+        h = heatmap_axs[row].imshow(dff, aspect='auto', cmap=cmap, interpolation='none', vmin=-.5, vmax=3)
+        fig.colorbar(h, cax=cbar_ax[row])
+        heatmap_axs[row].scatter(x, heading_, color='orange', s=5)
+
+        heatmap_axs[row].set_ylabel('ROIs')
+        heatmap_axs[row].set_yticks([-0.5,7.5,15.5], labels=[r'0', r'$\pi$', r'$2\pi$'])
+        heatmap_axs[row].yaxis.set_minor_locator(AutoMinorLocator())
+        
+        _plot_times = plot_times[plot_times<time.iloc[-1]]
+        heatmap_axs[row].set_xticks(get_time_ticks_inds(time, _plot_times), labels=_plot_times)
+        heatmap_axs[row].set_xlabel('Time (s)')
+        
+        heatmap_axs[row].set_title(title)
+
+        
+      
+        centers = (bins[:-1] + bins[1:]) / 2
+        hist, _ = np.histogram(offset, bins=bins)
+        hist = hist / hist.sum()  # normalize
+        if hatch is None:
+            hist_axs[row].fill_betweenx(centers, 0, hist, color=cmap(.8), alpha=.5)
+        else:
+            hist_axs[row].fill_betweenx(centers, 0, hist, alpha=1, hatch=hatch,color='none', edgecolor=cmap(.8))
+
+        # hist_axs[row].set_yticks([-np.pi,-3*np.pi/4, -np.pi/2, -np.pi/4, 0, np.pi/4, np.pi/2, 3*np.pi/4, np.pi], 
+        #                          labels=[r'-$\pi$', '', '', '', r'0','', '', '', r'$\pi$'])
+        hist_axs[row].set_yticks([-np.pi, 0,  np.pi], 
+                                 labels=[r'-$\pi$',  r'0', r'$\pi$'])
+        hist_axs[row].yaxis.set_minor_locator(AutoMinorLocator())
+        hist_axs[row].set_ylim([np.pi, -np.pi])
+        # hist_axs[row].set_xlim(left=0)
+        hist_axs[row].grid(True, axis='y', linestyle='-', alpha=0.8,linewidth=2.5, which='major')
+        ygridlines = hist_axs[row].get_ygridlines()
+        ygridlines[1].set_color('orange')
+        hist_axs[row].grid(True, axis='y', linestyle=':', alpha=0.5, linewidth=1.5, which='minor')
+        hist_axs[row].set_ylabel('Offset')
+        hist_axs[row].yaxis.tick_right()
+        hist_axs[row].yaxis.set_label_position('right')
+        hist_axs[row].set_xlabel('Prop.')
+        offset_var = sp.stats.circvar(offset, low=-np.pi, high=np.pi)
+        hist_axs[row].set_title(f"variance={offset_var:.2f}" )
+    
+
+    plot_row(0, 0, plt.cm.get_cmap('Greys'), 'EPGs')
+    plot_row(1, 1, plt.cm.get_cmap('Greens'), 'ELs')
+    
+    fig.suptitle(f'{fly_id} - {sess_name}')
+
+    return fig, (heatmap_axs, hist_axs, cbar_ax)

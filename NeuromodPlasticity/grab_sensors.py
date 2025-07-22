@@ -200,8 +200,8 @@ def reformat_rho_stats_for_reg(grouped_stats, dh_bins):
 
 def plot_sess_heatmaps(ts_dict, vmin=-.5, vmax=.5, plot_times = np.arange(0, 360, 60),
                        cmap='Greys', twindow=None):
-    fig = plt.figure(figsize=[15,5])
-    gs = gridspec.GridSpec(3,1, height_ratios=[3,1,1])
+    fig = plt.figure(figsize=[6,4])
+    gs = gridspec.GridSpec(3,1, height_ratios=[3,1.5,1.5],hspace=0.5)
     
     ax_heatmap = fig.add_subplot(gs[0])
     ax_heading = fig.add_subplot(gs[1], sharex=ax_heatmap)
@@ -231,11 +231,12 @@ def plot_sess_heatmaps(ts_dict, vmin=-.5, vmax=.5, plot_times = np.arange(0, 360
         x = np.arange(dff.shape[1])
         heading_ = (ts_dict[key].heading[mask]+np.pi)/(2*np.pi)*15
         
-        h = ax_heatmap.imshow(dff, aspect='auto', cmap=cmap, vmin=vmin, vmax=vmax)
+        h = ax_heatmap.imshow(dff, aspect='auto', cmap=cmap, vmin=vmin, vmax=vmax,
+                              interpolation='none')
         fig.colorbar(h, ax=ax_heatmap)
         # ax_heatmap.scatter(x, heading_, color='orange', s=5, alpha=.5)
         
-        ax_heading.scatter(x, ts_dict[key].heading[mask]+np.pi, color='orange', s=5)
+        ax_heading.scatter(x, ts_dict[key].heading[mask]+np.pi, color='orange', s=2)
         ax_heading.set_ylim([2*np.pi, 0])
         fig.colorbar(h, ax=ax_heading)
 
@@ -270,7 +271,7 @@ def plot_sess_heatmaps(ts_dict, vmin=-.5, vmax=.5, plot_times = np.arange(0, 360
         else:
             plot_rows(key, cmap)
     
-    fig.tight_layout()
+    # fig.tight_layout()
     
     return fig
 

@@ -165,8 +165,8 @@ def plot_sess_histograms(ts_dict, bins = np.linspace(-np.pi, np.pi, num=17)):
 def plot_sess_heatmaps_w_hist(ts_dict, bins = np.linspace(-np.pi, np.pi, num=17),vmin=-.5, vmax=.5, 
                               plot_times = np.arange(0, 360, 60), twindow = None):
     
-    fig = plt.figure(figsize=[15,6])
-    gs = GS(3,4, figure=fig, width_ratios=[12,1,.8, .3],wspace=.05,hspace=.8)
+    fig = plt.figure(figsize=[8,6])
+    gs = GS(3,4, figure=fig, width_ratios=[6,1,.8, .2],wspace=.05,hspace=.8)
     heatmap_axs = [fig.add_subplot(gs[0,0])]
     heatmap_axs.extend([fig.add_subplot(gs[i,0],sharey=heatmap_axs[0]) for i in range(1,3)])
     hist_axs = [fig.add_subplot(gs[0,1])]
@@ -185,6 +185,14 @@ def plot_sess_heatmaps_w_hist(ts_dict, bins = np.linspace(-np.pi, np.pi, num=17)
         offset = ts_dict[key].offset
         
         time = ts_dict[key].time
+
+        if twindow is not None:
+            mask = (time>=twindow[0]) * (time<=twindow[1])
+        else:
+            mask = np.ones_like(time)>0
+        dff= dff[:,mask]
+        time = time[mask]
+        heading = heading[mask]
 
         x = np.arange(dff.shape[1])
         heading_ = (heading + np.pi) / (2 * np.pi) * 15
