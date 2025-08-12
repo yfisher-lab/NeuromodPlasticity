@@ -27,7 +27,7 @@ def offset_stats(sess_df, load_row):
                 'pva_diff': [],
                 'fwhm_ch1': [],
                 'fwhm_ch2': []}
-    
+     
     for _, row in sess_df.iterrows():
         ts = session.GetTS(load_row(row), channels=[0,1])
 
@@ -140,7 +140,7 @@ def rho_stats(sess_df, load_row, dh_bins, abs=True):
             pvd = np.abs(np.angle(np.exp(1j*np.diff(ts.phi,axis=0)))).ravel()
         else:
             pvd = np.angle(np.exp(1j*np.diff(ts.phi,axis=0))).ravel()
-        pva_diff = np.array([pvd[dh_dig==i].mean() for i in range(len(dh_bins))])
+        pva_diff = np.array([pvd[(dh_dig==i)].mean() for i in range(len(dh_bins))])
         stats_df['pva_diff'].append(pva_diff)
 
     return pd.DataFrame.from_dict(stats_df)
