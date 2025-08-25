@@ -123,6 +123,8 @@ def offset_stats_plot(stats_df_unique):
     stats_df_plot = {'fly_id': [],
                     'offset_var_dark':[],
                     'offset_var_closed_loop':[],
+                    'offset_mag_dark': [],
+                    'offset_mag_closed_loop': [],
                     }
     fly_ids = stats_df_unique['fly_id'].unique()
     for fly in fly_ids:
@@ -134,9 +136,11 @@ def offset_stats_plot(stats_df_unique):
         
         _df_d = _df.loc[_df['dark']==1]
         stats_df_plot['offset_var_dark'].append(_df_d['offset_var'])
+        stats_df_plot['offset_mag_dark'].append(_df_d['offset_mag'])
         
         _df_cl = _df.loc[_df['dark']==0]
         stats_df_plot['offset_var_closed_loop'].append(_df_cl['offset_var'])
+        stats_df_plot['offset_mag_closed_loop'].append(_df_cl['offset_mag'])
     return pd.DataFrame.from_dict(stats_df_plot)
 
 
