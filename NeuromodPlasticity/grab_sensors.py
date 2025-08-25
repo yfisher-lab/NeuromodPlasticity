@@ -144,17 +144,23 @@ def offset_stats_plot(stats_df_unique):
     return pd.DataFrame.from_dict(stats_df_plot)
 
 
-def rho_stats(sess_cls, dh_bins):
+def rho_stats(sess_cls, dh_bins, dataframe = False, load_row=None):
     stats_df = {'fly_id': [],
             'cl': [],
             'rho_dig': [],
             'F_dig': [],
             }
+    
+    if not dataframe:
+        sess_df = sess_cls.sess_df
+        load_row = sess_cls.load_row
+    else:
+        sess_df = sess_cls
 
-    for _,row in sess_cls.sess_df.iterrows():
+    for _,row in sess_df.iterrows():
         
-            
-        ts = session.GetTS(sess_cls.load_row(row))
+        ts = session.GetTS(load_row(row))
+        # ts = session.GetTS(sess_cls.load_row(row))
         
         
         dh = np.diff(np.unwrap(ts.heading_sm))/ts.dt
