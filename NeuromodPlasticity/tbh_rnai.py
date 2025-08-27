@@ -384,8 +384,9 @@ def plot_sess_heatmaps_w_hist(ts_dict, vmin=-.5, vmax=3, plot_times = np.arange(
         hist_axs[row].yaxis.tick_right()
         hist_axs[row].yaxis.set_label_position('right')
         hist_axs[row].set_xlabel('Prop.')
-        offset_var = sp.stats.circvar(offset, low=-np.pi, high=np.pi)
-        hist_axs[row].set_title(f"variance={offset_var:.2f}" )
+        offset_len = np.abs(ts_dict[key].offset_c.mean())
+        # offset_var = sp.stats.circvar(offset, low=-np.pi, high=np.pi)
+        hist_axs[row].set_title(f"vec length={offset_len:.2f}" )
     
 
     plot_row('closed_loop', 0, plt.cm.get_cmap('Greys'))

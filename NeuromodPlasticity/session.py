@@ -21,9 +21,12 @@ class GetTS_DTE():
         self.time = None
         self.n_rois = None
         self.dt = None
+        self.fwhm = None
+        self.pv_c = None
 
         self.get_ts(**kwargs)
         self.heading_aligned()
+        self.calc_fwhm()
 
     def get_ts(self, circ_sigma=.5, t_sigma=.1, h_sigma=.1, neural_shift=-.2, dh_sigma=0, closed=True):
 
@@ -84,6 +87,22 @@ class GetTS_DTE():
             for chan in range(self.dff.shape[0]):
                 for ind in range(self.heading.shape[0]):
                     self.dff_h_aligned[chan,:,ind] = np.roll(self.dff[chan,:,ind], -heading_dig[ind]+8)
+
+    def calc_fwhm(self):
+        
+        def _fwhm(dff):
+            max_inds = np.argmax(dff, axis=0)
+            dff_aligned = np.zeros_like(dff)
+            for i in range(dff.shape[1]):
+                dff_aligned[:,i] = np.roll(dff[:,i], -max_inds[i])
+            mu = dff_aligned.mean(axis=1)
+            mu = (mu-np.amin(mu))/(np.amax(mu)-np.amin(mu))
+            return ((mu>=.5).sum()*2*np.pi/self.n_rois)
+
+        if self.dff.ndim > 2: # if there are multiple channels
+            self.fwhm = [_fwhm(self.dff[i,:,:]) for i in range(self.dff.shape[0])]
+        else:
+            self.fwhm = _fwhm(self.dff)
 
 
 class GetTS():

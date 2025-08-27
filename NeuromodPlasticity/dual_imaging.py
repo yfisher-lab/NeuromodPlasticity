@@ -12,8 +12,48 @@ import SessionTools.two_photon as st2p
 from . import session
 
 
+def offset_stats_DTE(data, channel_lookup):
+    stats_df = {'fly_id': [],
+                'cl': [],
+                'offset_ch1': [],
+                'offset_ch2': [],
+                'offset_var_ch1': [],
+                'offset_var_ch2': [],
+                'offset_diff': [],
+                'abs_offset_diff': [],
+                'pva_diff': [],
+                'fwhm_ch1': [],
+                'fwhm_ch2': []}
+    
 
+    for fly, multitrial_dict in data.items():
+        flyname = fly.split("\\")[-1]
+        for trial_name, trial_dict in multitrial_dict.items():
+            ts = session.GetTS_DTE(trial_dict, channel_lookup[fly], dh_sigma=.3)
 
+            stats_df['fly_id'].append(flyname)
+            stats_df['cl'].append(1)
+
+            mean_offsets = np.angle(ts.offset_c.mean(axis=-1))
+            # print(mean_offsets)
+            stats_df['offset_ch1'].append(mean_offsets[0])
+            stats_df['offset_ch2'].append(mean_offsets[1])
+
+            offset_var = sp.stats.circvar(ts.offset,axis=-1)
+            stats_df['offset_var_ch1'].append(offset_var[0])
+            stats_df['offset_var_ch2'].append(offset_var[1])
+
+            offset_diff = np.angle(np.exp(1j*(ts.offset[0,:]-ts.offset[1,:])))
+            stats_df['offset_diff'].append(sp.stats.circmean(offset_diff))
+            stats_df['abs_offset_diff'].append(sp.stats.circmean(np.abs(offset_diff)))
+
+            pva_diff = np.abs(np.angle(np.exp(1j*np.diff(ts.phi,axis=0)))).mean()
+            stats_df['pva_diff'].append(pva_diff)
+
+            stats_df['fwhm_ch1'].append(ts.fwhm[0])
+            stats_df['fwhm_ch2'].append(ts.fwhm[1])
+
+    return pd.DataFrame(stats_df)
 
 def offset_stats(sess_df, load_row):
     stats_df = {'fly_id': [],
@@ -55,7 +95,7 @@ def offset_stats(sess_df, load_row):
 
     return pd.DataFrame(stats_df)
 
-def offset_stats_unique(stats_df):
+def offset_stats_unique(stats_df, cl_only=False):
     stats_df_unique = {'fly_id': [],
                 'cl': [],
                 'offset_ch1': [],
@@ -74,7 +114,12 @@ def offset_stats_unique(stats_df):
                                                             # closed_loop >1 takes data where fly has at least 10 min of 
                                                             # experience prior to imaging
         dark_mask = (stats_df['fly_id']==fly)*(stats_df['cl']==0) 
-        if (cl_mask.sum()>0) and (dark_mask.sum()>0): # take only flies with both closed loop and dark data
+
+        if cl_only:
+            mask_sum = cl_mask.sum()>0
+        else:
+            mask_sum = (cl_mask.sum()>0) and (dark_mask.sum()>0)
+        if mask_sum: # take only flies with both closed loop and dark data
             
             stats_df_unique['fly_id'].append(fly)
             stats_df_unique['cl'].append(1)
@@ -484,7 +529,7 @@ def plot_sess_heatmaps_w_hist(ts, fly_id, sess_name, vmin=-.5, vmax=3, plot_time
 
         x = np.arange(dff.shape[1])
         heading_ = (heading + np.pi) / (2 * np.pi) * 15
-        h = heatmap_axs[row].imshow(dff, aspect='auto', cmap=cmap, interpolation='none', vmin=-.5, vmax=3)
+        h = heatmap_axs[row].imshow(dff, aspect='auto', cmap=cmap, interpolation='none', vmin=vmin, vmax=vmax)
         fig.colorbar(h, cax=cbar_ax[row])
         heatmap_axs[row].scatter(x, heading_, color='orange', s=5)
 
