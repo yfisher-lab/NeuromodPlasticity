@@ -375,6 +375,7 @@ def plot_sess_heatmaps_w_hist(ts_dict, vmin=-.5, vmax=3, plot_times = np.arange(
                                  labels=[r'-$\pi$',  r'0', r'$\pi$'])
         hist_axs[row].yaxis.set_minor_locator(AutoMinorLocator())
         hist_axs[row].set_ylim([np.pi, -np.pi])
+        hist_axs[row].set_xticks([0, .1, .2])
         hist_axs[row].grid(True, axis='y', linestyle='-', alpha=0.8,linewidth=2.5, which='major')
         ygridlines = hist_axs[row].get_ygridlines()
         ygridlines[1].set_color('orange')
